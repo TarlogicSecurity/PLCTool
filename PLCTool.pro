@@ -171,7 +171,9 @@ SOURCES += main.cpp\
     gurux/src/GXXmlReader.cpp \
     gurux/src/GXXmlWriter.cpp \
     gurux/src/GXXmlWriterSettings.cpp \
-    Ui/DLMSLogUI.cpp
+    Ui/DLMSLogUI.cpp \
+    Ui/TranslatorUI.cpp \
+    Ui/XMLHighlighter.cpp
 
 HEADERS  += MainWindow.h \
     Topology/Adapter.h \
@@ -353,7 +355,9 @@ HEADERS  += MainWindow.h \
     gurux/include/TranslatorSimpleTags.h \
     gurux/include/TranslatorStandardTags.h \
     gurux/include/TranslatorTags.h \
-    Ui/DLMSLogUI.h
+    Ui/DLMSLogUI.h \
+    Ui/TranslatorUI.h \
+    Ui/XMLHighlighter.h
 
 
 FORMS    += Forms/MainWindow.ui \
@@ -361,6 +365,7 @@ FORMS    += Forms/MainWindow.ui \
     Forms/ModemDialog.ui \
     Forms/CredentialsUI.ui \
     Forms/FrameLogUI.ui \
-    Forms/DLMSLogUI.ui
+    Forms/DLMSLogUI.ui \
+    Forms/TranslatorUI.ui
 
 unix: LIBS += -ldl

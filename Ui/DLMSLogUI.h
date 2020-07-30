@@ -12,6 +12,8 @@ namespace Ui {
   class DLMSLogUI;
 }
 
+class XMLHighlighter;
+
 struct DlmsMessage {
   QDateTime timeStamp;
   QString SNA;
@@ -33,6 +35,8 @@ class DLMSLogUI : public QWidget
   QString savedText;
   CGXDLMSTranslator translator;
   QVector<DlmsMessage> messageList;
+
+  XMLHighlighter *highlighter;
 
   void colorizeRow(int row, const QColor &color);
   void saveLog(QString path);
