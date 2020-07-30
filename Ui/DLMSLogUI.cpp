@@ -5,6 +5,7 @@
 #include <PRIME/PrimeAdapter.h>
 #include <QTableWidgetItem>
 #include <dlms/dlmsmsg.h>
+#include "XMLHighlighter.h"
 
 QString
 DlmsMessage::toText(void) const
@@ -159,7 +160,7 @@ DLMSLogUI::pushMessage(
     msg.type = dlms_command_to_str(
           static_cast<DLMS_COMMAND>(msg.pdu[0]));
   else
-    msg.type = "(empty)";
+    msg.type = "<!-- empty -->";
 
 
   dataBuffer.Set(dataBytes, size);
@@ -179,6 +180,8 @@ DLMSLogUI::DLMSLogUI(QWidget *parent) :
   ui->setupUi(this);
 
   this->connectAll();
+
+  this->highlighter = new XMLHighlighter(this->ui->xmlEdit->document());
 
   this->savedText = this->ui->xmlEdit->toPlainText();
 }

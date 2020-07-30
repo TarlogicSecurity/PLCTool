@@ -3,6 +3,7 @@
 #include "CredentialsUI.h"
 #include "FrameLogUI.h"
 #include "DLMSLogUI.h"
+#include "TranslatorUI.h"
 
 QtUi::QtUi(QObject *parent) : QObject(parent)
 {
@@ -14,6 +15,7 @@ QtUi::QtUi(QObject *parent) : QObject(parent)
   this->openFrameLog();
   this->openCredsLog();
   this->openDlmsLog();
+  this->openTranslator();
 }
 
 void
@@ -91,6 +93,17 @@ QtUi::openDlmsLog(void)
           "DlmsLog",
           "DLMS Message Logger",
           new DLMSLogUI);
+  }
+}
+
+void
+QtUi::openTranslator(void)
+{
+  if (this->mainWindow->findWindow("DlmsTranslator") == nullptr) {
+    (void) this->mainWindow->openWindow(
+          "DlmsTranslator",
+          "DLMS Translator",
+          new TranslatorUI);
   }
 }
 

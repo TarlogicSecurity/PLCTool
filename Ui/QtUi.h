@@ -35,6 +35,7 @@ public:
   void openFrameLog(void);
   void openCredsLog(void);
   void openDlmsLog(void);
+  void openTranslator(void);
 
   void pushFrame(
       const PLCTool::Concentrator *,
