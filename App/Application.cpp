@@ -160,11 +160,6 @@ Application::parseDataFrame(
   if (cmd == DLMS_COMMAND_AARQ) {
     TRY(ber_stream_read_uint8(stream, len));
 
-    printf("AARQ FOUND: ");
-    for (i = 0; i < size; ++i)
-      printf("%02x", asBytes[i]);
-    putchar(10);
-
     if (len > ber_stream_avail(stream))
       goto fail;
 

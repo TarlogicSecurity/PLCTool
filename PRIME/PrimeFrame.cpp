@@ -330,7 +330,7 @@ PrimeFrame::deserializeDATA(const uint8_t *payload, size_t size)
     } while (arq->info[p++].m && p < (size - 1));
   }
 
-  if (arq->info[p - 1].m)
+  if (p > 0 && arq->info[p - 1].m)
     return false;
 
   // Consumed bytes: p + 1. Bytes to add: size - p - 1

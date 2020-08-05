@@ -4,8 +4,11 @@
 #include <algorithm>
 #include <PRIME/PrimeAdapter.h>
 #include <QTableWidgetItem>
+#include <QMessageBox>
 #include <dlms/dlmsmsg.h>
 #include "XMLHighlighter.h"
+
+Q_DECLARE_METATYPE(DlmsMessage *)
 
 QString
 DlmsMessage::toText(void) const
@@ -25,54 +28,100 @@ DlmsMessage::toText(void) const
 }
 
 void
-DLMSLogUI::saveLog(QString)
+DLMSLogUI::saveLog(QString path)
 {
+  FILE *fp = nullptr;
 
+  if ((fp = fopen(path.toStdString().c_str(), "w")) == nullptr) {
+    QMessageBox::critical(
+          this,
+          "Failed to save frame log",
+          "Cannot open " + path + " for writing: " + strerror(errno));
+  } else {
+    int i;
+
+    for (i = 0; i < this->messageList.count(); ++i) {
+      DlmsMessage *f = &this->messageList[i];
+
+      fprintf(
+            fp,
+            "MESSAGE:%d,%s,%c,%d,%s,%s,%d,",
+            i + 1,
+            f->SNA.toStdString().c_str(),
+            f->downlink ? 'D' : 'U',
+            f->timeStamp.toTime_t(),
+            f->type.toStdString().c_str(),
+            f->nodeId.toStdString().c_str(),
+            f->pdu.size());
+
+      for (int j = 0; j < f->pdu.size(); ++j)
+        fprintf(fp, "%02x", f->pdu[j]);
+
+      fprintf(fp, "\n");
+      fwrite(f->xml.data(), f->xml.size(), 1, fp);
+      fprintf(fp, "\n");
+    }
+
+    fclose(fp);
+  }
 }
 
 void
 DLMSLogUI::saveMessage(const DlmsMessage &msg)
 {
   int rows = this->ui->tableWidget->rowCount();
+  QTableWidgetItem *ptr;
 
-  this->messageList.push_back(msg);
+  this->messageList.append(msg);
 
   this->ui->tableWidget->insertRow(rows);
 
   this->ui->tableWidget->setItem(
         rows,
         0,
-        new QTableWidgetItem(QString::number(rows + 1)));
+        ptr = new QTableWidgetItem());
+
+  ptr->setData(Qt::DisplayRole, QVariant::fromValue<int>(rows + 1));
+  ptr->setData(
+        Qt::UserRole,
+        QVariant::fromValue(this->messageList.count() - 1));
 
   this->ui->tableWidget->setItem(
-        rows,
+        ptr->row(),
         1,
         new QTableWidgetItem(msg.timeStamp.toString()));
 
   this->ui->tableWidget->setItem(
-        rows,
+        ptr->row(),
         2,
         new QTableWidgetItem(msg.downlink ? "Downlink" : "Uplink"));
 
   this->ui->tableWidget->setItem(
-        rows,
+        ptr->row(),
         3,
         new QTableWidgetItem(msg.type));
 
   this->ui->tableWidget->setItem(
-        rows,
+        ptr->row(),
         4,
         new QTableWidgetItem(msg.nodeId));
 
   this->ui->tableWidget->setItem(
-        rows,
+        ptr->row(),
         5,
         new QTableWidgetItem(QString::number(msg.pdu.size())));
 
   this->ui->tableWidget->setItem(
-        rows,
+        ptr->row(),
         6,
         new QTableWidgetItem(msg.SNA));
+
+  this->ui->lineSpin->setMinimum(1);
+  this->ui->lineSpin->setMaximum(rows);
+  this->ui->lineSpin->setEnabled(true);
+  this->ui->gotoButton->setEnabled(true);
+  this->ui->topButton->setEnabled(true);
+  this->ui->bottomButton->setEnabled(true);
 
   this->ui->tableWidget->resizeColumnsToContents();
 
@@ -114,6 +163,23 @@ DLMSLogUI::connectAll(void)
         this,
         SLOT(onSaveAs(bool)));
 
+  connect(
+        this->ui->topButton,
+        SIGNAL(clicked(bool)),
+        this,
+        SLOT(onTop()));
+
+  connect(
+        this->ui->bottomButton,
+        SIGNAL(clicked(bool)),
+        this,
+        SLOT(onBottom()));
+
+  connect(
+        this->ui->gotoButton,
+        SIGNAL(clicked(bool)),
+        this,
+        SLOT(onGotoLine()));
 }
 
 void
@@ -195,11 +261,18 @@ DLMSLogUI::~DLMSLogUI()
 void
 DLMSLogUI::onCellActivated(int row, int)
 {
-  if (row >= 0 && row < this->messageList.size()) {
-    this->ui->xmlEdit->setText(this->messageList[row].toText());
-  } else {
-    this->ui->xmlEdit->setText(this->savedText);
+  DlmsMessage *msg = nullptr;
+
+  if (row >= 0 && row < this->ui->tableWidget->rowCount()) {
+    int ndx = this->ui->tableWidget->item(row, 0)->data(Qt::UserRole).value<int>();
+    if (ndx >= 0 && ndx < this->messageList.count())
+      msg = &this->messageList[ndx];
   }
+
+  if (msg != nullptr)
+    this->ui->xmlEdit->setText(msg->toText());
+  else
+    this->ui->xmlEdit->setText(this->savedText);
 }
 
 void
@@ -231,5 +304,31 @@ DLMSLogUI::onClear(bool)
   this->messageList.clear();
   this->ui->tableWidget->setRowCount(0);
   this->ui->xmlEdit->setText("");
+  this->ui->lineSpin->setMinimum(0);
+  this->ui->lineSpin->setMaximum(0);
+  this->ui->lineSpin->setEnabled(false);
+  this->ui->gotoButton->setEnabled(false);
+  this->ui->topButton->setEnabled(false);
+  this->ui->bottomButton->setEnabled(false);
 }
 
+void
+DLMSLogUI::onTop(void)
+{
+  this->ui->tableWidget->scrollToTop();
+}
+
+void
+DLMSLogUI::onBottom(void)
+{
+  this->ui->tableWidget->scrollToBottom();
+}
+
+void
+DLMSLogUI::onGotoLine(void)
+{
+  this->ui->tableWidget->scrollTo(
+        this->ui->tableWidget->model()->index(
+          this->ui->lineSpin->value() - 1,
+          0));
+}

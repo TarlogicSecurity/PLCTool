@@ -31,7 +31,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-
+#define NDEBUG
 #include "../include/GXDate.h"
 #include "../include/GXTime.h"
 #include "../include/GXHelpers.h"
@@ -1821,7 +1821,6 @@ int GXHelpers::GetData(
         ret = GetTime(data, info, value);
         break;
     default:
-        assert(0);
         ret = DLMS_ERROR_CODE_INVALID_PARAMETER;
     }
     return ret;
