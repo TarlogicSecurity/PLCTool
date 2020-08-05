@@ -61,6 +61,9 @@ public slots:
   void onSaveAs(bool);
   void onClear(bool);
 
+  void onTop(void);
+  void onBottom(void);
+  void onGotoLine(void);
 
 private:
   Ui::DLMSLogUI *ui;

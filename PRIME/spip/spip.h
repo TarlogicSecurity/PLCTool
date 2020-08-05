@@ -22,6 +22,7 @@ extern "C" {
 #endif /* !defined(__SAM4CMS16C_0__) */
 
 #define SPIP_FRAME_SYNC (((uint64_t) 0xa5a5a5a5ul << (uint64_t) 32) | (uint64_t) 0xdeadcefeul)
+#define SPIP_HEADER_SIZE 20
 
 enum spip_command {
   SPIP_COMMAND_FRAME,
@@ -82,6 +83,8 @@ BOOL spip_iface_loop(
     BOOL (*on_pdu) (spip_iface_t *iface, struct spip_pdu *pdu, void *userdata),
     void *userdata);
 BOOL spip_iface_close(spip_iface_t *iface);
+
+struct spip_pdu *spip_pdu_dup(const struct spip_pdu *pdu);
 
 uint32_t spip_crc32b(const uint8_t *sna, const uint8_t *message, size_t len);
 

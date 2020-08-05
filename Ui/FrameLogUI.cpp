@@ -10,6 +10,8 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
+Q_DECLARE_METATYPE(Frame *);
+
 Frame::~Frame()
 {
   if (this->frame != nullptr)
@@ -49,12 +51,12 @@ Frame::toHtml(void) const
   result += "<table>\n";
   for (int j = 0; j < rows; ++j) {
     offset = j << 4;
-    result += "<tr><td style=\"" + style + "\">";
+    result += "<tr><td style=\"color: red; " + style + "\">";
     snprintf(string, sizeof(string), "%04x", offset);
     result += string;
-    result += "</td>";
+    result += "  </td>";
 
-    result += "<td style=\"" + style + "\">";
+    result += "<td style=\"color: blue; " + style + "\">";
     for (int i = 0, offset = j << 4; i < 16; ++i, ++offset) {
       if (offset < static_cast<int>(size))
         snprintf(string, sizeof(string), "%02x ", this->bytes[offset]);
@@ -146,7 +148,7 @@ FrameLogUI::saveLog(QString path)
   }
 }
 
-void
+int
 FrameLogUI::saveFrame(
     const PLCTool::Concentrator *concentrator,
     bool downlink,
@@ -170,6 +172,8 @@ FrameLogUI::saveFrame(
         std::back_inserter(frame.bytes));
 
   this->frameList.append(frame);
+
+  return this->frameList.count() - 1;
 }
 
 void
@@ -205,6 +209,23 @@ FrameLogUI::connectAll(void)
         this,
         SLOT(onSaveAs(bool)));
 
+  connect(
+        this->ui->topButton,
+        SIGNAL(clicked(bool)),
+        this,
+        SLOT(onTop()));
+
+  connect(
+        this->ui->bottomButton,
+        SIGNAL(clicked(bool)),
+        this,
+        SLOT(onBottom()));
+
+  connect(
+        this->ui->gotoButton,
+        SIGNAL(clicked(bool)),
+        this,
+        SLOT(onGotoLine()));
 }
 
 void
@@ -282,41 +303,48 @@ FrameLogUI::pushFrame(
         0,
         id);
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         1,
         timeStamp);
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         2,
         dir);
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         3,
         type);
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         4,
         new QTableWidgetItem(QString(lnid)));
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         5,
         sz);
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         6,
         SNA);
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         7,
         data);
 
+  this->ui->lineSpin->setMinimum(1);
+  this->ui->lineSpin->setMaximum(rows);
+  this->ui->lineSpin->setEnabled(true);
+  this->ui->gotoButton->setEnabled(true);
+  this->ui->topButton->setEnabled(true);
+  this->ui->bottomButton->setEnabled(true);
+
   if (frame == nullptr) {
-    this->colorizeRow(rows, QColor::fromRgb(0xff, 0x80, 0x80));
+    this->colorizeRow(id->row(), QColor::fromRgb(0xff, 0x80, 0x80));
   } else if (frame->PDU.macType == PLCTool::PrimeFrame::BEACON) {
-    this->colorizeRow(rows, QColor::fromRgb(0xc0, 0xc0, 0xc0));
+    this->colorizeRow(id->row(), QColor::fromRgb(0xc0, 0xc0, 0xc0));
   } else if (frame->PDU.macType == PLCTool::PrimeFrame::GENERIC) {
     if (frame->PDU.genType == PLCTool::PrimeFrame::DATA)
-      this->colorizeRow(rows, QColor::fromRgb(0x80, 0xff, 0x80));
+      this->colorizeRow(id->row(), QColor::fromRgb(0x80, 0xff, 0x80));
   }
 
   this->ui->tableWidget->resizeColumnsToContents();
@@ -325,7 +353,11 @@ FrameLogUI::pushFrame(
     this->ui->tableWidget->scrollToBottom();
 
   // Don't delete the frame. Just save it.
-  this->saveFrame(concentrator, downlink, dataBytes, size, frame);
+  id->setData(
+        Qt::UserRole,
+        QVariant::fromValue(
+          this->saveFrame(concentrator, downlink, dataBytes, size, frame)));
+
 }
 
 FrameLogUI::~FrameLogUI()
@@ -338,11 +370,18 @@ FrameLogUI::~FrameLogUI()
 void
 FrameLogUI::onCellActivated(int row, int)
 {
-  if (row >= 0 && row < this->frameList.size()) {
-    this->ui->hexEdit->setHtml(this->frameList[row].toHtml());
-    this->ui->pktEdit->setText(
-          this->frameList[row].frame != nullptr
-          ? QString::fromStdString(this->frameList[row].frame->toString())
+  Frame *frame = nullptr;
+
+  if (row >= 0 && row < this->ui->tableWidget->rowCount()) {
+    int ndx = this->ui->tableWidget->item(row, 0)->data(Qt::UserRole).value<int>();
+    if (ndx >= 0 && ndx < this->frameList.count())
+      frame = &this->frameList[ndx];
+  }
+
+  if (frame != nullptr) {
+    this->ui->hexEdit->setHtml(frame->toHtml());
+    this->ui->pktEdit->setText(frame->frame != nullptr
+          ? QString::fromStdString(frame->frame->toString())
           : "");
   } else {
     this->ui->hexEdit->setHtml(this->savedHtml);
@@ -380,4 +419,31 @@ FrameLogUI::onClear(bool)
   this->ui->tableWidget->setRowCount(0);
   this->ui->hexEdit->setHtml(this->savedHtml);
   this->ui->pktEdit->setText("");
+  this->ui->lineSpin->setMinimum(0);
+  this->ui->lineSpin->setMaximum(0);
+  this->ui->lineSpin->setEnabled(false);
+  this->ui->gotoButton->setEnabled(false);
+  this->ui->topButton->setEnabled(false);
+  this->ui->bottomButton->setEnabled(false);
+}
+
+void
+FrameLogUI::onTop(void)
+{
+  this->ui->tableWidget->scrollToTop();
+}
+
+void
+FrameLogUI::onBottom(void)
+{
+  this->ui->tableWidget->scrollToBottom();
+}
+
+void
+FrameLogUI::onGotoLine(void)
+{
+  this->ui->tableWidget->scrollTo(
+        this->ui->tableWidget->model()->index(
+          this->ui->lineSpin->value() - 1,
+          0));
 }

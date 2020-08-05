@@ -13,6 +13,8 @@ namespace Ui {
   class FrameLogUI;
 }
 
+class QTableWidgetItem;
+
 struct Frame {
   QString SNA;
   bool downlink;
@@ -36,7 +38,7 @@ class FrameLogUI : public QWidget
 
   void colorizeRow(int row, const QColor &color);
   void saveLog(QString path);
-  void saveFrame(
+  int saveFrame(
       const PLCTool::Concentrator *,
       bool downlink,
       const void *data,
@@ -61,6 +63,10 @@ public slots:
   void onCurrentChanged(QModelIndex, QModelIndex);
   void onSaveAs(bool);
   void onClear(bool);
+
+  void onTop(void);
+  void onBottom(void);
+  void onGotoLine(void);
 
 private:
   Ui::FrameLogUI *ui;

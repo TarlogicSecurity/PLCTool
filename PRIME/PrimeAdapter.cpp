@@ -136,11 +136,16 @@ PrimeAdapterImpl::readerThreadFunc(void *userdata)
 {
   PrimeAdapterImpl *self = static_cast<PrimeAdapterImpl *>(userdata);
   struct spip_pdu *pdu = nullptr;
+  struct spip_pdu *copy;
 
   while (!self->halting && spip_iface_read(&self->iface, &pdu)) {
-    self->lock();
-    self->pduList.push_back(pdu);
-    self->unlock();
+    if ((copy = spip_pdu_dup(pdu)) != nullptr) {
+      self->lock();
+      self->pduList.push_back(copy);
+      self->unlock();
+    }
+
+    spip_iface_dispose(&self->iface, pdu);
   }
 
   return nullptr;
@@ -289,7 +294,7 @@ PrimeAdapterImpl::work(void)
       processed = true;
     }
 
-    spip_iface_dispose(&this->iface, pdu);
+    free(pdu);
   }
 
   return processed;
@@ -364,7 +369,7 @@ PrimeAdapterImpl::~PrimeAdapterImpl()
     pthread_join(this->readerThread, nullptr);
 
     while ((pdu = this->popPdu()) != nullptr)
-      spip_iface_dispose(&this->iface, pdu);
+      free(pdu);
   }
 
   if (this->readerMutexInitialized)

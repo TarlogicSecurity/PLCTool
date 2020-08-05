@@ -16,8 +16,6 @@
 
 #include "spip.h"
 
-#define SPIP_HEADER_SIZE 20
-
 static void *
 spip_ctx_assert_alloc(spip_ctx_t *self, size_t size)
 {
@@ -200,6 +198,19 @@ spip_iface_dispose(spip_iface_t *iface, struct spip_pdu *pdu)
 
   (void) iface;
   (void) pdu;
+}
+
+struct spip_pdu *
+spip_pdu_dup(const struct spip_pdu *pdu)
+{
+  struct spip_pdu *copy = malloc(SPIP_HEADER_SIZE + pdu->size);
+
+  if (copy == NULL)
+    return NULL;
+
+  memcpy(copy, pdu, SPIP_HEADER_SIZE + pdu->size);
+
+  return copy;
 }
 
 BOOL

@@ -57,6 +57,23 @@
           <property name="spacing">
            <number>3</number>
           </property>
+          <item row="1" column="5">
+           <widget class="QPushButton" name="bottomButton">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>&amp;Bottom</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="7">
+           <widget class="QSpinBox" name="lineSpin">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
           <item row="1" column="0">
            <widget class="QToolButton" name="saveButton">
             <property name="text">
@@ -71,7 +88,7 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="3">
+          <item row="1" column="9">
            <spacer name="horizontalSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -84,7 +101,7 @@
             </property>
            </spacer>
           </item>
-          <item row="1" column="2">
+          <item row="1" column="3">
            <widget class="QToolButton" name="autoScrollButton">
             <property name="text">
              <string>&amp;Autoscroll</string>
@@ -94,6 +111,26 @@
             </property>
             <property name="checked">
              <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="4">
+           <widget class="QPushButton" name="topButton">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>&amp;Top</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="6">
+           <widget class="QPushButton" name="gotoButton">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>&amp;Go to line...</string>
             </property>
            </widget>
           </item>
