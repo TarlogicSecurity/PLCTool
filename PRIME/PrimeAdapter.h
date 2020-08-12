@@ -44,6 +44,8 @@ namespace PLCTool {
     void writeFrame(std::vector<uint8_t> const &data);
     void setLcd(int row, std::string const &text);
     void setLeds(int leds);
+    unsigned int totalFrameCount(void) const;
+    unsigned int parsedFrameCount(void) const;
 
     static std::string idToSna(NodeId id);
 

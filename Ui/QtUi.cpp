@@ -67,6 +67,16 @@ QtUi::breathe(void)
     if (this->dlmsLogUi != nullptr)
       this->dlmsLogUi->refreshMessages();
 
+    if (this->parsedFrameCounter == 0
+        && this->totalFrameCounter > 0) {
+      this->loadingMessage("Counting frames");
+      this->loadingDialog->setLimits(0, 0);
+    } else if (this->totalFrameCounter > 0){
+      this->loadingMessage("Loading frames");
+      this->loadingDialog->setLimits(
+            this->parsedFrameCounter,
+            this->totalFrameCounter);
+    }
     this->refreshTimer.restart();
   }
 }
@@ -93,6 +103,13 @@ QtUi::setLoading(bool state)
 }
 
 void
+QtUi::setCounters(unsigned int parsed, unsigned int total)
+{
+  this->parsedFrameCounter = parsed;
+  this->totalFrameCounter  = total;
+}
+
+void
 QtUi::loadingMessage(QString text)
 {
   this->loadingDialog->setStatus(text);
@@ -102,7 +119,6 @@ void
 QtUi::setAdapter(PLCTool::Adapter *adapter)
 {
   if (adapter != nullptr) {
-    this->frameCounter = 0;
     if (this->frameLogUi != nullptr)
       this->frameLogUi->clear();
     if (this->dlmsLogUi != nullptr)
@@ -192,8 +208,6 @@ QtUi::pushFrame(
       this->frameLogUi = static_cast<FrameLogUI *>(sw->widget());
   }
 
-  ++this->frameCounter;
-
   if (this->frameLogUi != nullptr) {
     this->frameLogUi->pushFrame(
           concentrator,
@@ -202,9 +216,6 @@ QtUi::pushFrame(
           data,
           size);
 
-    if (this->loadingDialog->isVisible())
-      this->loadingDialog->setStatus(
-            QString::number(this->frameCounter) + " frames");
     this->breathe();
   }
 }

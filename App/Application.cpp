@@ -143,6 +143,12 @@ Application::connectAdapter(void)
 
   connect(
         this->adapter,
+        SIGNAL(status(QString)),
+        this,
+        SLOT(onAdapterStatusMessage(QString)));
+
+  connect(
+        this->adapter,
         SIGNAL(refresh(void)),
         this,
         SLOT(onAdapterRefreshRequested(void)));
@@ -325,6 +331,9 @@ Application::onDataReceived(
     size_t size)
 {
   this->parseDataFrame(meter, timeStamp, downlink, data, size);
+  this->ui->setCounters(
+        this->adapter->parsedFrameCount(),
+        this->adapter->totalFrameCount());
 }
 
 void
@@ -357,4 +366,10 @@ void
 Application::onAdapterRefreshRequested(void)
 {
   this->ui->refreshFrames();
+}
+
+void
+Application::onAdapterStatusMessage(QString message)
+{
+  this->ui->loadingMessage(message);
 }
