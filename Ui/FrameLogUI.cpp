@@ -161,6 +161,11 @@ FrameLogUI::connectProcessor(void)
         SLOT(onFrame(Frame)));
 }
 
+void
+FrameLogUI::clear(void)
+{
+  this->onClear(false);
+}
 
 void
 FrameLogUI::saveFrame(Frame const &frame)

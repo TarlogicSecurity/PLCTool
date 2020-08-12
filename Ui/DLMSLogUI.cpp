@@ -213,6 +213,12 @@ DLMSLogUI::registerTypes(void)
   DLMSProcessor::registerTypes();
 }
 
+void
+DLMSLogUI::clear(void)
+{
+  this->onClear(false);
+}
+
 DLMSLogUI::DLMSLogUI(QWidget *parent) :
   QWidget(parent),
   ui(new Ui::DLMSLogUI)

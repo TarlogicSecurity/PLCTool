@@ -103,6 +103,10 @@ QtUi::setAdapter(PLCTool::Adapter *adapter)
 {
   if (adapter != nullptr) {
     this->frameCounter = 0;
+    if (this->frameLogUi != nullptr)
+      this->frameLogUi->clear();
+    if (this->dlmsLogUi != nullptr)
+      this->dlmsLogUi->clear();
     const PLCTool::SubNet &sn = adapter->nodes();
     this->mainWindow->setSubNet(&sn);
   } else {

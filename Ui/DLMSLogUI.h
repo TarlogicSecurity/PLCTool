@@ -51,6 +51,8 @@ public:
   void refreshMessages(void);
   int findMessage(QDateTime const &);
   void selectNear(QDateTime const &, PLCTool::NodeId);
+  void clear(void);
+
   ~DLMSLogUI();
 
 signals:
