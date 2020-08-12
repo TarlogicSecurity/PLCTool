@@ -1406,6 +1406,7 @@ int CGXAPDU::ParsePDU2(
             {
                 return DLMS_ERROR_CODE_INVALID_TAG;
             }
+
             if (settings.IsServer())
             {
                 if ((ret = buff.GetUInt8(&tag)) != 0)
@@ -1426,6 +1427,46 @@ int CGXAPDU::ParsePDU2(
                 if (xml != NULL)
                 {
                     //RespondingAPTitle
+                    unsigned char *asBytes = NULL;
+                    unsigned long count = 0;
+                    bb.ToArray(asBytes, count);
+
+                    if (count >= 3
+                        && isprint(asBytes[0])
+                        && isprint(asBytes[1])
+                        && isprint(asBytes[2])) {
+                      std::string title;
+                      bool allPrintable = true;
+                      char hex[4];
+                      for (unsigned long i = 3;
+                           i < count && allPrintable;
+                           ++i)
+                        allPrintable = allPrintable && isprint(asBytes[i]);
+
+                      if (allPrintable) {
+                        std::copy(
+                              reinterpret_cast<char *>(asBytes),
+                              reinterpret_cast<char *>(asBytes) + count,
+                              std::back_inserter(title));
+                      } else {
+                        std::copy(
+                              reinterpret_cast<char *>(asBytes),
+                              reinterpret_cast<char *>(asBytes) + 3,
+                              std::back_inserter(title));
+
+                        title += " (";
+                        for (unsigned long i = 3; i < count; ++i) {
+                          snprintf(hex, 4, "%02x", asBytes[i]);
+                          title += hex;
+                        }
+                        title += ")";
+                      }
+
+                      xml->AppendComment(title);
+                    }
+
+                    free(asBytes);
+
                     str = bb.ToHexString(false);
                     xml->AppendLine(DLMS_TRANSLATOR_TAGS_CALLED_AP_TITLE, "", str);
                 }
@@ -1628,6 +1669,47 @@ int CGXAPDU::ParsePDU2(
             if (xml != NULL)
             {
                 //CallingAPTitle
+                unsigned char *asBytes = NULL;
+                unsigned long count = 0;
+                tmp.ToArray(asBytes, count);
+
+                if (count >= 3
+                    && isprint(asBytes[0])
+                    && isprint(asBytes[1])
+                    && isprint(asBytes[2])) {
+                  std::string title;
+                  bool allPrintable = true;
+                  char hex[4];
+                  for (unsigned long i = 3;
+                       i < count && allPrintable;
+                       ++i)
+                    allPrintable = allPrintable && isprint(asBytes[i]);
+
+                  if (allPrintable) {
+                    std::copy(
+                          reinterpret_cast<char *>(asBytes),
+                          reinterpret_cast<char *>(asBytes) + count,
+                          std::back_inserter(title));
+                  } else {
+                    std::copy(
+                          reinterpret_cast<char *>(asBytes),
+                          reinterpret_cast<char *>(asBytes) + 3,
+                          std::back_inserter(title));
+
+                    title += " (";
+                    for (unsigned long i = 3; i < count; ++i) {
+                      snprintf(hex, 4, "%02x", asBytes[i]);
+                      title += hex;
+                    }
+                    title += ")";
+                  }
+
+
+                  xml->AppendComment(title);
+                }
+
+                free(asBytes);
+
                 str = tmp.ToHexString(false);
                 xml->AppendLine(TRANSLATOR_GENERAL_TAGS_CALLING_AP_TITLE, "", str);
             }
