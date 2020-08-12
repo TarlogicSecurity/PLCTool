@@ -40,6 +40,12 @@ MainWindow::connectAll(void)
         SIGNAL(triggered(bool)),
         this,
         SIGNAL(openModemDialog()));
+
+  connect(
+        this->ui->actionLoad,
+        SIGNAL(triggered(bool)),
+        this,
+        SIGNAL(loadFile()));
 }
 
 QSaneMdiSubWindow *

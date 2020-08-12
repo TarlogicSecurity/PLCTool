@@ -29,6 +29,36 @@ Application::~Application()
 }
 
 bool
+Application::loadLogFile(QString const &path)
+{
+  this->closeAdapter();
+
+  try {
+    this->adapter = new PLCTool::PrimeAdapter(path);
+    if (!this->adapter->initialize()) {
+      this->adapter->deleteLater();
+      this->adapter = nullptr;
+
+      PH_THROW(
+            GENERIC,
+            "Failed to initialize adapter (file "
+            + path.toStdString()
+            + "). Please verify that permissions are correct.");
+    }
+  } catch (PLCTool::Exception &e) {
+    QMessageBox::critical(
+          nullptr,
+          "Failed to open adapter",
+          QString::fromStdString(e.toString()));
+  }
+
+  if (this->adapter != nullptr)
+    this->connectAdapter();
+
+  return this->adapter != nullptr;
+}
+
+bool
 Application::openAdapter(QString const &path, unsigned int baud)
 {
   PLCTool::StringParams params;
@@ -42,7 +72,7 @@ Application::openAdapter(QString const &path, unsigned int baud)
   try {
     this->adapter = new PLCTool::PrimeAdapter(params);
     if (!this->adapter->initialize()) {
-      delete this->adapter;
+      this->adapter->deleteLater();
       this->adapter = nullptr;
 
       PH_THROW(
@@ -69,7 +99,8 @@ Application::closeAdapter(void)
 {
   if (this->adapter != nullptr) {
     this->subNetHistory.push_back(this->adapter->takeSubNet());
-    delete this->adapter;
+    this->adapter->disconnect();
+    this->adapter->deleteLater();
     this->adapter = nullptr;
     return true;
   }
@@ -82,27 +113,39 @@ Application::connectAdapter(void)
 {
   connect(
         this->adapter,
-        SIGNAL(subnetAnnounce(PLCTool::Concentrator*,uint64_t)),
+        SIGNAL(subnetAnnounce(PLCTool::Concentrator*,QDateTime,uint64_t)),
         this,
-        SLOT(onSubnetAnnounce(PLCTool::Concentrator*,uint64_t)));
+        SLOT(onSubnetAnnounce(PLCTool::Concentrator*,QDateTime,uint64_t)));
 
   connect(
         this->adapter,
-        SIGNAL(dataReceived(PLCTool::Meter*,bool,const void*,size_t)),
+        SIGNAL(dataReceived(PLCTool::Meter*,QDateTime,bool,const void*,size_t)),
         this,
-        SLOT(onDataReceived(PLCTool::Meter*,bool,const void*,size_t)));
+        SLOT(onDataReceived(PLCTool::Meter*,QDateTime,bool,const void*,size_t)));
 
   connect(
         this->adapter,
-        SIGNAL(frameReceived(PLCTool::Concentrator*,bool,const void*,size_t)),
+        SIGNAL(frameReceived(PLCTool::Concentrator*,QDateTime,bool,const void*,size_t)),
         this,
-        SLOT(onFrameReceived(PLCTool::Concentrator*,bool,const void*,size_t)));
+        SLOT(onFrameReceived(PLCTool::Concentrator*,QDateTime,bool,const void*,size_t)));
 
   connect(
         this->adapter,
-        SIGNAL(meterFound(PLCTool::Concentrator*,PLCTool::Meter*)),
+        SIGNAL(meterFound(PLCTool::Concentrator*,QDateTime,PLCTool::Meter*)),
         this,
-        SLOT(onMeterFound(PLCTool::Concentrator*,PLCTool::Meter*)));
+        SLOT(onMeterFound(PLCTool::Concentrator*,QDateTime,PLCTool::Meter*)));
+
+  connect(
+        this->adapter,
+        SIGNAL(closed(void)),
+        this,
+        SLOT(onAdapterClosed(void)));
+
+  connect(
+        this->adapter,
+        SIGNAL(refresh(void)),
+        this,
+        SLOT(onAdapterRefreshRequested(void)));
 }
 
 void
@@ -119,11 +162,18 @@ Application::connectUi(void)
         SIGNAL(closeAdapter()),
         this,
         SLOT(onCloseAdapter()));
+
+  connect(
+        this->ui,
+        SIGNAL(openLogFile(QString)),
+        this,
+        SLOT(onOpenLogFile(QString)));
 }
 
 void
 Application::parseDataFrame(
     PLCTool::Meter *meter,
+    QDateTime timeStamp,
     bool downlink,
     const void *data,
     size_t size)
@@ -139,7 +189,6 @@ Application::parseDataFrame(
   bool infoFound = false;
   std::string password;
   const uint8_t *p = nullptr;
-  unsigned int i = 0;
   PLCTool::Concentrator *dc =
       static_cast<PLCTool::Concentrator *>(meter->parent()->parent());
 
@@ -151,7 +200,7 @@ Application::parseDataFrame(
   data = asBytes;
   size -= 3;
 
-  this->ui->pushData(dc, meter->id(), downlink, data, size);
+  this->ui->pushData(dc, timeStamp, meter->id(), downlink, data, size);
 
   TRY(stream = ber_stream_copy(data, size));
   TRY(ber_stream_read_uint8(stream, cmd));
@@ -216,7 +265,11 @@ Application::parseDataFrame(
       meter->params()["AARQ_FOUND"] = std::string("TRUE");
       meter->params()["MAX_PDU_SIZE"] = std::to_string(maxSize);
 
-      this->ui->pushCreds(dc, meter->id(), QString::fromStdString(password));
+      this->ui->pushCreds(
+            dc,
+            timeStamp,
+            meter->id(),
+            QString::fromStdString(password));
     }
   }
 
@@ -237,6 +290,15 @@ Application::onOpenAdapter(void)
 }
 
 void
+Application::onOpenLogFile(QString path)
+{
+  if (this->loadLogFile(path)) {
+    this->ui->setLoading(true);
+    this->ui->setAdapter(static_cast<PLCTool::Adapter *>(this->adapter));
+  }
+}
+
+void
 Application::onCloseAdapter(void)
 {
   if (this->closeAdapter())
@@ -246,33 +308,53 @@ Application::onCloseAdapter(void)
 void
 Application::onFrameReceived(
     PLCTool::Concentrator *c,
+    QDateTime timeStamp,
     bool downlink,
     const void *data,
     size_t size)
 {
-  this->ui->pushFrame(c, downlink, data, size);
+  this->ui->pushFrame(c, timeStamp, downlink, data, size);
 }
 
 void
 Application::onDataReceived(
     PLCTool::Meter *meter,
+    QDateTime timeStamp,
     bool downlink,
     const void *data,
     size_t size)
 {
-  this->parseDataFrame(meter, downlink, data, size);
+  this->parseDataFrame(meter, timeStamp, downlink, data, size);
 }
 
-
 void
-Application::onSubnetAnnounce(PLCTool::Concentrator *, uint64_t)
+Application::onSubnetAnnounce(
+    PLCTool::Concentrator *,
+    QDateTime,
+    uint64_t)
 {
   this->ui->notifyTopologyChange();
 }
 
 void
-Application::onMeterFound(PLCTool::Concentrator *, PLCTool::Meter *)
+Application::onMeterFound(
+    PLCTool::Concentrator *,
+    QDateTime,
+    PLCTool::Meter *)
 {
   this->ui->notifyTopologyChange();
 }
 
+void
+Application::onAdapterClosed(void)
+{
+  this->ui->setLoading(false);
+  this->ui->refreshFrames();
+  this->onCloseAdapter();
+}
+
+void
+Application::onAdapterRefreshRequested(void)
+{
+  this->ui->refreshFrames();
+}

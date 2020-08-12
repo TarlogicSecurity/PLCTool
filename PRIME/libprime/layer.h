@@ -11,6 +11,7 @@
 #define _PRIME_LAYER_H
 
 #include "state.h"
+#include <sys/time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,6 +81,7 @@ struct prime13_callbacks {
 struct prime13_layer {
   prime13_state_t *state;
   BOOL disconnected;
+  struct timeval feed_time;
   struct prime13_phy_adapter adapter;
   struct prime13_callbacks callbacks;
 };
@@ -98,10 +100,21 @@ prime13_layer_get_userdata(const prime13_layer_t *self)
   return self->callbacks.userdata;
 }
 
+static inline struct timeval
+prime13_layer_get_feed_time(const prime13_layer_t *self)
+{
+  return self->feed_time;
+}
+
 prime13_layer_t *prime13_layer_new(
     const struct prime13_phy_adapter *adapter,
     const struct prime13_callbacks *callbacks);
 
+BOOL prime13_layer_feed_extended(
+    prime13_layer_t *self,
+    const struct timeval *timestamp,
+    const void *data,
+    size_t size);
 BOOL prime13_layer_feed(prime13_layer_t *self, const void *data, size_t size);
 BOOL prime13_layer_work(prime13_layer_t *self);
 

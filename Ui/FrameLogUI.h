@@ -7,7 +7,10 @@
 #include <QVector>
 #include <QDateTime>
 #include <PRIME/PrimeFrame.h>
+#include <QSortFilterProxyModel>
 #include <QColor>
+#include "FrameTableModel.h"
+#include <QThread>
 
 namespace Ui {
   class FrameLogUI;
@@ -15,51 +18,53 @@ namespace Ui {
 
 class QTableWidgetItem;
 
-struct Frame {
-  QString SNA;
-  bool downlink;
-  QVector<uint8_t> bytes;
-  QDateTime timeStamp;
-  PLCTool::PrimeFrame *frame = nullptr;
-
-  Frame();
-  Frame(const Frame &);
-  QString toHtml(void) const;
-
-  ~Frame();
-};
-
 class FrameLogUI : public QWidget
 {
   Q_OBJECT
 
+  QThread *procThread = nullptr;
+  PRIMEProcessor *processor = nullptr;
+
+  FrameTableModel *model = nullptr;
+  QSortFilterProxyModel *proxy = nullptr;
+
   QVector<Frame> frameList;
   QString savedHtml;
 
-  void colorizeRow(int row, const QColor &color);
   void saveLog(QString path);
-  int saveFrame(
-      const PLCTool::Concentrator *,
-      bool downlink,
-      const void *data,
-      size_t size,
-      PLCTool::PrimeFrame *);
+  void saveFrame(Frame const &);
 
+  void connectProcessor(void);
   void connectAll(void);
 
 public:
-  explicit FrameLogUI(QWidget *parent = 0);
+  static void registerTypes(void);
 
+  explicit FrameLogUI(QWidget *parent = 0);
   void pushFrame(
       const PLCTool::Concentrator *,
+      QDateTime,
       bool downlink,
       const void *data,
       size_t size);
 
+  void refreshFrames(void);
+  void selectNear(
+      QDateTime const &,
+      PLCTool::PrimeFrame::GenericType,
+      PLCTool::NodeId);
   ~FrameLogUI();
 
+signals:
+  void frameSelected(Frame &);
+  void frameReceived(
+          quint64 dcId,
+          QDateTime timeStamp,
+          bool downlink,
+          QVector<uint8_t>);
+
 public slots:
-  void onCellActivated(int row, int column);
+  void onCellActivated(const QModelIndex &);
   void onCurrentChanged(QModelIndex, QModelIndex);
   void onSaveAs(bool);
   void onClear(bool);
@@ -67,6 +72,7 @@ public slots:
   void onTop(void);
   void onBottom(void);
   void onGotoLine(void);
+  void onFrame(Frame);
 
 private:
   Ui::FrameLogUI *ui;

@@ -59,6 +59,7 @@ private:
     Ui::MainWindow *ui;
 
 signals:
+    void loadFile(void);
     void toggleStart(void);
     void openModemDialog(void);
     void closeSubWindow(QString);

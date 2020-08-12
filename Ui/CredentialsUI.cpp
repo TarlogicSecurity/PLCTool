@@ -65,6 +65,7 @@ CredentialsUI::saveLog(QString path)
 void
 CredentialsUI::saveCreds(
     const PLCTool::Concentrator *dc,
+    QDateTime timeStamp,
     PLCTool::NodeId meter,
     QString password)
 {
@@ -74,7 +75,7 @@ CredentialsUI::saveCreds(
         PLCTool::PrimeAdapter::idToSna(dc->id()));
   creds.meter     = meter;
   creds.password  = password;
-  creds.timeStamp = QDateTime::currentDateTime();
+  creds.timeStamp = timeStamp;
 
   this->credList.append(creds);
 }
@@ -82,6 +83,7 @@ CredentialsUI::saveCreds(
 void
 CredentialsUI::pushCreds(
     const PLCTool::Concentrator *dc,
+    QDateTime timeStamp,
     PLCTool::NodeId meter,
     QString password)
 {
@@ -91,8 +93,7 @@ CredentialsUI::pushCreds(
   snprintf(nodeIdStr, sizeof(nodeIdStr), "%06x", (unsigned int) meter);
 
   QTableWidgetItem *id = new QTableWidgetItem();
-  QTableWidgetItem *timeStamp =
-      new QTableWidgetItem(QDateTime::currentDateTime().toString());
+  QTableWidgetItem *time = new QTableWidgetItem(timeStamp.toString());
   QTableWidgetItem *SNA =
       new QTableWidgetItem(
         QString::fromStdString(
@@ -100,7 +101,7 @@ CredentialsUI::pushCreds(
   QTableWidgetItem *meterId = new QTableWidgetItem(nodeIdStr);
   QTableWidgetItem *pwdItem = new QTableWidgetItem(password);
 
-  this->saveCreds(dc, meter, password);
+  this->saveCreds(dc, timeStamp, meter, password);
   this->ui->tableWidget->insertRow(rows);
 
   id->setData(Qt::DisplayRole, QVariant::fromValue<int>(rows + 1));
@@ -110,19 +111,19 @@ CredentialsUI::pushCreds(
         0,
         id);
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         1,
-        timeStamp);
+        time);
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         2,
         SNA);
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         3,
         meterId);
   this->ui->tableWidget->setItem(
-        rows,
+        id->row(),
         4,
         pwdItem);
 

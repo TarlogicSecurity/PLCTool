@@ -2,30 +2,9 @@
 #include "ui_DLMSLogUI.h"
 #include <QFileDialog>
 #include <algorithm>
-#include <PRIME/PrimeAdapter.h>
 #include <QTableWidgetItem>
 #include <QMessageBox>
-#include <dlms/dlmsmsg.h>
 #include "XMLHighlighter.h"
-
-Q_DECLARE_METATYPE(DlmsMessage *)
-
-QString
-DlmsMessage::toText(void) const
-{
-  QString asHex;
-  char string[4];
-
-  if (this->xml.size() > 0)
-    return this->xml;
-
-  for (int i = 0; i < this->pdu.size(); ++i) {
-    snprintf(string, sizeof(string), "%02x", this->pdu[i]);
-    asHex += string;
-  }
-
-  return asHex;
-}
 
 void
 DLMSLogUI::saveLog(QString path)
@@ -45,13 +24,13 @@ DLMSLogUI::saveLog(QString path)
 
       fprintf(
             fp,
-            "MESSAGE:%d,%s,%c,%d,%s,%s,%d,",
+            "MESSAGE:%d,%s,%c,%d,%s,%06lx,%d,",
             i + 1,
             f->SNA.toStdString().c_str(),
             f->downlink ? 'D' : 'U',
             f->timeStamp.toTime_t(),
             f->type.toStdString().c_str(),
-            f->nodeId.toStdString().c_str(),
+            f->nodeId,
             f->pdu.size());
 
       for (int j = 0; j < f->pdu.size(); ++j)
@@ -69,52 +48,15 @@ DLMSLogUI::saveLog(QString path)
 void
 DLMSLogUI::saveMessage(const DlmsMessage &msg)
 {
-  int rows = this->ui->tableWidget->rowCount();
-  QTableWidgetItem *ptr;
-
   this->messageList.append(msg);
+}
 
-  this->ui->tableWidget->insertRow(rows);
+void
+DLMSLogUI::refreshMessages(void)
+{
+  int rows = this->messageList.size();
 
-  this->ui->tableWidget->setItem(
-        rows,
-        0,
-        ptr = new QTableWidgetItem());
-
-  ptr->setData(Qt::DisplayRole, QVariant::fromValue<int>(rows + 1));
-  ptr->setData(
-        Qt::UserRole,
-        QVariant::fromValue(this->messageList.count() - 1));
-
-  this->ui->tableWidget->setItem(
-        ptr->row(),
-        1,
-        new QTableWidgetItem(msg.timeStamp.toString()));
-
-  this->ui->tableWidget->setItem(
-        ptr->row(),
-        2,
-        new QTableWidgetItem(msg.downlink ? "Downlink" : "Uplink"));
-
-  this->ui->tableWidget->setItem(
-        ptr->row(),
-        3,
-        new QTableWidgetItem(msg.type));
-
-  this->ui->tableWidget->setItem(
-        ptr->row(),
-        4,
-        new QTableWidgetItem(msg.nodeId));
-
-  this->ui->tableWidget->setItem(
-        ptr->row(),
-        5,
-        new QTableWidgetItem(QString::number(msg.pdu.size())));
-
-  this->ui->tableWidget->setItem(
-        ptr->row(),
-        6,
-        new QTableWidgetItem(msg.SNA));
+  this->model->refreshData();
 
   this->ui->lineSpin->setMinimum(1);
   this->ui->lineSpin->setMaximum(rows);
@@ -123,30 +65,56 @@ DLMSLogUI::saveMessage(const DlmsMessage &msg)
   this->ui->topButton->setEnabled(true);
   this->ui->bottomButton->setEnabled(true);
 
-  this->ui->tableWidget->resizeColumnsToContents();
-
   if (this->ui->autoScrollButton->isChecked())
-    this->ui->tableWidget->scrollToBottom();
+    this->ui->messageView->scrollToBottom();
+
+  for (int i = 0; i < 8; ++i)
+    this->ui->messageView->resizeColumnToContents(i);
 }
 
+int
+DLMSLogUI::findMessage(QDateTime const &date)
+{
+  //int ndxA, ndxB;
+  
+  if (this->messageList.empty())
+    return -1;
+
+ // ndxA = 0;
+  //ndxB = 0;
+
+  if (date.msecsTo(this->messageList.first().timeStamp) > 0)
+    return -1;
+
+  if (date.msecsTo(this->messageList.last().timeStamp) < 0)
+    return -1;
+
+  return 0;
+}
+
+void
+DLMSLogUI::selectNear(QDateTime const &, PLCTool::NodeId )
+{
+  //int findMessage(QDateTime const &);
+}
 
 void
 DLMSLogUI::connectAll(void)
 {
   connect(
-        this->ui->tableWidget,
-        SIGNAL(cellActivated(int,int)),
+        this->ui->messageView,
+        SIGNAL(activated(const QModelIndex &)),
         this,
-        SLOT(onCellActivated(int,int)));
+        SLOT(onCellActivated(const QModelIndex &)));
 
   connect(
-        this->ui->tableWidget,
-        SIGNAL(cellClicked(int,int)),
+        this->ui->messageView,
+        SIGNAL(clicked(const QModelIndex &)),
         this,
-        SLOT(onCellActivated(int,int)));
+        SLOT(onCellActivated(const QModelIndex &)));
 
   connect(
-        this->ui->tableWidget->selectionModel(),
+        this->ui->messageView->selectionModel(),
         SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
         this,
         SLOT(onCurrentChanged(QModelIndex,QModelIndex)));
@@ -183,102 +151,130 @@ DLMSLogUI::connectAll(void)
 }
 
 void
-DLMSLogUI::colorizeRow(int row, const QColor &color)
-{
-  int i;
-
-  if (row >= 0 && row < this->ui->tableWidget->rowCount()) {
-    for (i = 0; i < this->ui->tableWidget->columnCount(); ++i) {
-      this->ui->tableWidget->item(row, i)->setBackground(QBrush(color));
-    }
-  }
-}
-
-void
 DLMSLogUI::pushMessage(
     const PLCTool::Concentrator *concentrator,
+    QDateTime timeStamp,
     const PLCTool::NodeId id,
     bool downlink,
     const void *dataBytes,
     size_t size)
 {
-  DlmsMessage msg;
-  CGXByteBuffer dataBuffer;
-  std::string str;
-  char nodeId[32];
+  QVector<uint8_t> data;
 
-  snprintf(nodeId, sizeof(nodeId), "%06lx", id);
-
-  msg.downlink = downlink;
-  msg.SNA = QString::fromStdString(
-        PLCTool::PrimeAdapter::idToSna(concentrator->id()));
-  msg.nodeId = nodeId;
-  msg.timeStamp = QDateTime::currentDateTime();
-
-  msg.pdu.resize(size);
+  data.resize(size);
 
   std::copy(
         static_cast<const uint8_t *>(dataBytes),
         static_cast<const uint8_t *>(dataBytes) + size,
-        std::begin(msg.pdu));
+        std::begin(data));
 
-  if (msg.pdu.size() > 0)
-    msg.type = dlms_command_to_str(
-          static_cast<DLMS_COMMAND>(msg.pdu[0]));
-  else
-    msg.type = "<!-- empty -->";
+  emit messageReceived(
+        QString::fromStdString(
+          PLCTool::PrimeAdapter::idToSna(concentrator->id())),
+        timeStamp,
+        id,
+        downlink,
+        data);
+}
 
+void
+DLMSLogUI::connectProcessor(void)
+{
+  // Thread lifecycle management
+  connect(
+        this->procThread,
+        SIGNAL(finished()),
+        this->procThread,
+        SLOT(deleteLater()));
 
-  dataBuffer.Set(dataBytes, size);
-  if (this->translator.PduToXml(dataBuffer, str) == 0)
-    msg.xml = QString::fromStdString(str);
-  else
-    msg.xml = "<!-- Decode failed -->";
+  connect(
+        this->procThread,
+        SIGNAL(finished()),
+        this->processor,
+        SLOT(deleteLater()));
 
-  this->saveMessage(msg);
+  // Object message passing
+  connect(
+        this,
+        SIGNAL(messageReceived(QString,QDateTime,quint64,bool,QVector<uint8_t>)),
+        this->processor,
+        SLOT(process(QString,QDateTime,quint64,bool,QVector<uint8_t>)));
+
+  connect(
+        this->processor,
+        SIGNAL(dlmsMessage(DlmsMessage)),
+        this,
+        SLOT(onDlmsMessage(DlmsMessage)));
+}
+
+void
+DLMSLogUI::registerTypes(void)
+{
+  DLMSProcessor::registerTypes();
 }
 
 DLMSLogUI::DLMSLogUI(QWidget *parent) :
   QWidget(parent),
-  translator(DLMS_TRANSLATOR_OUTPUT_TYPE_SIMPLE_XML),
   ui(new Ui::DLMSLogUI)
 {
   ui->setupUi(this);
 
+  this->model = new DLMSTableModel(this, &this->messageList);
+  this->proxy = new QSortFilterProxyModel(this);
+
+  this->proxy->setSourceModel(this->model);
+  this->ui->messageView->setModel(this->proxy);
+  this->ui->messageView->setSortingEnabled(true);
+  this->proxy->sort(-1);
+
   this->connectAll();
 
   this->highlighter = new XMLHighlighter(this->ui->xmlEdit->document());
+
+  this->processor = new DLMSProcessor(nullptr);
+  this->procThread = new QThread(nullptr);
+  this->processor->moveToThread(this->procThread);
+  this->connectProcessor();
+  this->procThread->start();
 
   this->savedText = this->ui->xmlEdit->toPlainText();
 }
 
 DLMSLogUI::~DLMSLogUI()
 {
+  if (this->procThread != nullptr)
+    this->procThread->quit();
+
   delete ui;
 }
 
 //////////////////////////////////// Slots ////////////////////////////////////
 void
-DLMSLogUI::onCellActivated(int row, int)
+DLMSLogUI::onCellActivated(QModelIndex const &index)
 {
   DlmsMessage *msg = nullptr;
+  int row = index.row();
 
-  if (row >= 0 && row < this->ui->tableWidget->rowCount()) {
-    int ndx = this->ui->tableWidget->item(row, 0)->data(Qt::UserRole).value<int>();
+  if (row >= 0 && row < this->proxy->rowCount()) {
+    QModelIndex trueIndex = this->proxy->mapToSource(index);
+    int ndx = this->model->data(trueIndex, Qt::UserRole).value<int>();
+
     if (ndx >= 0 && ndx < this->messageList.count())
       msg = &this->messageList[ndx];
   }
 
-  if (msg != nullptr)
+  if (msg != nullptr) {
+    emit messageSelected(*msg);
     this->ui->xmlEdit->setText(msg->toText());
-  else
+  } else {
     this->ui->xmlEdit->setText(this->savedText);
+  }
 }
 
 void
 DLMSLogUI::onCurrentChanged(QModelIndex curr, QModelIndex)
 {
-  onCellActivated(curr.row(), curr.column());
+  onCellActivated(curr);
 }
 
 void
@@ -302,7 +298,7 @@ void
 DLMSLogUI::onClear(bool)
 {
   this->messageList.clear();
-  this->ui->tableWidget->setRowCount(0);
+  this->refreshMessages();
   this->ui->xmlEdit->setText("");
   this->ui->lineSpin->setMinimum(0);
   this->ui->lineSpin->setMaximum(0);
@@ -315,20 +311,26 @@ DLMSLogUI::onClear(bool)
 void
 DLMSLogUI::onTop(void)
 {
-  this->ui->tableWidget->scrollToTop();
+  this->ui->messageView->scrollToTop();
 }
 
 void
 DLMSLogUI::onBottom(void)
 {
-  this->ui->tableWidget->scrollToBottom();
+  this->ui->messageView->scrollToBottom();
 }
 
 void
 DLMSLogUI::onGotoLine(void)
 {
-  this->ui->tableWidget->scrollTo(
-        this->ui->tableWidget->model()->index(
+  this->ui->messageView->scrollTo(
+        this->ui->messageView->model()->index(
           this->ui->lineSpin->value() - 1,
           0));
+}
+
+void
+DLMSLogUI::onDlmsMessage(DlmsMessage msg)
+{
+  this->saveMessage(msg);
 }

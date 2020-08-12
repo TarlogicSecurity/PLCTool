@@ -5,7 +5,7 @@
 //
 // Company confidential. Any unauthorized use, disclosure, reproduction or
 // distribution of this file is strictly prohibited.
-//
+//now
 
 #include "PrimeAdapter.h"
 #include <Topology/Adapter.h>
@@ -18,17 +18,29 @@
 #include <pthread.h>
 #include <cstring>
 #include <list>
+#include <cmath>
+#include <vector>
 
 #define PRIME_ADAPTER_BAUD_RATE 921600
 
 using namespace PLCTool;
 
 namespace PLCTool {
-  typedef std::list<struct spip_pdu *>SPIPPduList;
+  struct RawPDU {
+    struct timeval timeStamp;
+    std::vector<uint8_t> data;
+
+    RawPDU();
+    RawPDU(struct spip_pdu *, struct timeval timeStamp);
+    RawPDU(const char *hexString, qreal timeStamp);
+  };
+
+  typedef std::list<RawPDU> RawPDUList;
 
   class PrimeAdapterImpl {
-    spip_iface_t iface;
-    SPIPPduList pduList;
+    spip_iface_t iface = spip_iface_INITIALIZER;
+    FILE *fp = nullptr;
+    RawPDUList pduList;
     PrimeAdapter *owner = nullptr;
     prime13_layer_t *layer = nullptr;
 
@@ -40,15 +52,20 @@ namespace PLCTool {
 
     bool blinkState = 0;
     bool halting = false;
+    bool halted = false;
 
     void lock(void);
     void unlock(void);
 
-    struct spip_pdu *popPdu(void);
+    bool popPdu(RawPDU &);
+    QDateTime currentTimeStamp(void) const;
+
+    void commonInit(PrimeAdapter *);
 
   public:
     PrimeAdapterImpl(PrimeAdapter *owner, StringParams const &params);
-    void warmup(void);
+    PrimeAdapterImpl(PrimeAdapter *owner, QString path);
+    void spipWarmup(void);
     bool work(void);
 
     void writeFrame(const void *data, size_t size);
@@ -56,6 +73,12 @@ namespace PLCTool {
     void setLeds(int leds);
 
     ~PrimeAdapterImpl();
+
+    inline bool
+    isHalted(void) const
+    {
+      return this->halted;
+    }
 
     static inline NodeId
     getPrimeNodeId(const prime13_node_t *node)
@@ -111,8 +134,42 @@ namespace PLCTool {
 
     static void onDestroy(void *cbdata);
 
-    static void *readerThreadFunc(void *);
+    static void *spipReaderThreadFunc(void *);
+    static void *logFileReaderThreadFunc(void *);
   };
+}
+
+RawPDU::RawPDU()
+{
+  gettimeofday(&this->timeStamp, nullptr);
+}
+
+RawPDU::RawPDU(struct spip_pdu *pdu, struct timeval tv)
+{
+  this->timeStamp = tv;
+  this->data.resize(pdu->size);
+  std::copy(
+        pdu->data,
+        pdu->data + pdu->size,
+        std::begin(this->data));
+}
+
+RawPDU::RawPDU(const char *hexString, qreal timeStamp)
+{
+  unsigned int byte;
+  size_t len = strlen(hexString);
+
+  this->timeStamp.tv_sec  = std::floor(timeStamp);
+  this->timeStamp.tv_usec = std::round(
+        1e6 * (timeStamp - std::floor(timeStamp)));
+  this->data.clear();
+
+  for (size_t i = 0; i < len; i += 2) {
+    if (sscanf(hexString + i, "%02x", &byte) != 1)
+      break;
+
+    this->data.push_back(byte);
+  }
 }
 
 void
@@ -132,21 +189,54 @@ PrimeAdapterImpl::unlock(void)
 }
 
 void *
-PrimeAdapterImpl::readerThreadFunc(void *userdata)
+PrimeAdapterImpl::spipReaderThreadFunc(void *userdata)
 {
   PrimeAdapterImpl *self = static_cast<PrimeAdapterImpl *>(userdata);
   struct spip_pdu *pdu = nullptr;
-  struct spip_pdu *copy;
 
   while (!self->halting && spip_iface_read(&self->iface, &pdu)) {
-    if ((copy = spip_pdu_dup(pdu)) != nullptr) {
+    if (pdu->command == SPIP_COMMAND_FRAME) {
+      struct timeval tv;
+      gettimeofday(&tv, nullptr);
+
       self->lock();
-      self->pduList.push_back(copy);
+      self->pduList.push_back(RawPDU(pdu, tv));
       self->unlock();
     }
 
     spip_iface_dispose(&self->iface, pdu);
   }
+
+  self->halted = true;
+
+  return nullptr;
+}
+
+void *
+PrimeAdapterImpl::logFileReaderThreadFunc(void *userdata)
+{
+  PrimeAdapterImpl *self = static_cast<PrimeAdapterImpl *>(userdata);
+  char *line = nullptr;
+
+  while ((line = fread_line(self->fp)) != nullptr) {
+    arg_list_t *al;
+
+    if ((al = csv_split_line(line)) != nullptr) {
+      if (al->al_argc >= 8) {
+        unsigned long timeStamp;
+        if (sscanf(al->al_argv[3], "%lu", &timeStamp) == 1) {
+          self->lock();
+          self->pduList.push_back(RawPDU(al->al_argv[7], timeStamp));
+          self->unlock();
+        }
+      }
+
+      free_al(al);
+    }
+    free(line);
+  }
+
+  self->halted = true;
 
   return nullptr;
 }
@@ -170,7 +260,7 @@ PrimeAdapterImpl::setLeds(int leds)
 }
 
 void
-PrimeAdapterImpl::warmup(void)
+PrimeAdapterImpl::spipWarmup(void)
 {
   unsigned int i;
 
@@ -187,12 +277,11 @@ PrimeAdapterImpl::onMeter(
       static_cast<PrimeAdapterImpl *>(prime13_layer_get_userdata(self));
   Concentrator *dc = impl->owner->assertConcentrator(
         PrimeAdapterImpl::getPrimeSubNetId(node));
-
   Meter *meter = impl->owner->assertMeter(
         PrimeAdapterImpl::getPrimeSubNetId(node),
         PrimeAdapterImpl::getPrimeNodeId(node));
 
-  emit impl->owner->meterFound(dc, meter);
+  emit impl->owner->meterFound(dc, impl->currentTimeStamp(), meter);
 
   return meter;
 }
@@ -206,12 +295,11 @@ PrimeAdapterImpl::onSubNet(
 {
   PrimeAdapterImpl *impl =
       static_cast<PrimeAdapterImpl *>(prime13_layer_get_userdata(self));
-
   Concentrator *dc =
       impl->owner->assertConcentrator(PrimeAdapterImpl::snaToNodeId(sna));
 
   if (dc != nullptr)
-    emit impl->owner->subnetAnnounce(dc, times);
+    emit impl->owner->subnetAnnounce(dc, impl->currentTimeStamp(), times);
 
   return dc != nullptr ? TRUE : FALSE;
 }
@@ -228,7 +316,10 @@ PrimeAdapterImpl::onFrame(
   NodeId dcId = PrimeAdapterImpl::snaToNodeId(sna);
   Concentrator *dc = impl->owner->assertConcentrator(dcId);
 
-  emit impl->owner->frameReceived(dc, direction != FALSE, data, size);
+  emit impl->owner->frameReceived(
+        dc,
+        impl->currentTimeStamp(),
+        direction != FALSE, data, size);
 
   return TRUE;
 }
@@ -248,8 +339,10 @@ PrimeAdapterImpl::onData(
       impl->owner->assertMeter(
               PrimeAdapterImpl::getPrimeSubNetId(node),
               PrimeAdapterImpl::getPrimeNodeId(node));
-
-  emit impl->owner->dataReceived(meter, downstream != FALSE, data, size);
+  emit impl->owner->dataReceived(
+        meter,
+        impl->currentTimeStamp(),
+        downstream != FALSE, data, size);
 
   return TRUE;
 }
@@ -266,43 +359,52 @@ PrimeAdapterImpl::onDestroy(void *)
   // NO-OP
 }
 
-struct spip_pdu *
-PrimeAdapterImpl::popPdu(void)
+bool
+PrimeAdapterImpl::popPdu(RawPDU &pdu)
 {
-  struct spip_pdu *pdu = nullptr;
+  bool avail = false;
 
   this->lock();
 
   if (!this->pduList.empty()) {
     pdu = this->pduList.front();
     this->pduList.pop_front();
+    avail = true;
   }
 
   this->unlock();
-  return pdu;
+
+  return avail;
+}
+
+QDateTime
+PrimeAdapterImpl::currentTimeStamp(void) const
+{
+  struct timeval tv = prime13_layer_get_feed_time(this->layer);
+  return QDateTime::fromMSecsSinceEpoch(
+        tv.tv_sec * 1000 + tv.tv_usec / 1000);
 }
 
 bool
 PrimeAdapterImpl::work(void)
 {
-  struct spip_pdu *pdu = NULL;
+  RawPDU pdu;
   bool processed = false;
 
-  while ((pdu = this->popPdu()) != nullptr) {
-    if (pdu->command == SPIP_COMMAND_FRAME) {
-      prime13_layer_feed(layer, pdu->data, pdu->size);
-      processed = true;
-    }
-
-    free(pdu);
+  while (this->popPdu(pdu)) {
+    prime13_layer_feed_extended(
+          layer,
+          &pdu.timeStamp,
+          pdu.data.data(),
+          pdu.data.size());
+    processed = true;
   }
 
   return processed;
 }
 
-PrimeAdapterImpl::PrimeAdapterImpl(
-    PrimeAdapter *owner,
-    StringParams const &params)
+void
+PrimeAdapterImpl::commonInit(PrimeAdapter *owner)
 {
   struct prime13_phy_adapter phy = prime13_phy_adapter_INITIALIZER;
   struct prime13_callbacks callbacks = prime13_callbacks_INITIALIZER;
@@ -323,7 +425,23 @@ PrimeAdapterImpl::PrimeAdapterImpl(
   callbacks.dispose   = PrimeAdapterImpl::onDispose;
   callbacks.destroy   = PrimeAdapterImpl::onDestroy;
 
+  CONSTRUCT(this->layer, prime13_layer, &phy, &callbacks);
+
+  return;
+
+fail:
+  PH_THROW(GENERIC, "Constructor error");
+}
+
+
+PrimeAdapterImpl::PrimeAdapterImpl(
+    PrimeAdapter *owner,
+    StringParams const &params)
+{
+
   std::string path = params["path"].asString();
+
+  this->commonInit(owner);
 
   memset(&this->iface, 0, sizeof(spip_iface_t));
 
@@ -337,39 +455,50 @@ PrimeAdapterImpl::PrimeAdapterImpl(
           PRIME_ADAPTER_BAUD_RATE),
       "Cannot open SPIP protocol on " + path);
 
-  this->warmup();
+  this->spipWarmup();
 
   spip_iface_set_lcd(&this->iface, 0, "PLC Tool 0.1");
-  spip_iface_set_lcd(&this->iface, 1, "Detecting SNA...");
-
-  CONSTRUCT(this->layer, prime13_layer, &phy, &callbacks);
+  spip_iface_set_lcd(&this->iface, 1, "Capturing...");
 
   PH_CHECK_GENERIC(pthread_create(
       &this->readerThread,
       nullptr,
-      PrimeAdapterImpl::readerThreadFunc,
+      PrimeAdapterImpl::spipReaderThreadFunc,
       this) != -1,
-      "Cannot create blinker thread");
+      "Cannot create SPIP reader thread");
   this->readerThreadRunning = true;
+}
 
-  return;
+PrimeAdapterImpl::PrimeAdapterImpl(
+    PrimeAdapter *owner,
+    QString path)
+{
+  this->commonInit(owner);
 
-fail:
-  PH_THROW(GENERIC, "Constructor error");
+  PH_CHECK_GENERIC(
+        fp = fopen(path.toStdString().c_str(), "r"),
+        "Failed to open log file: " + std::string(strerror(errno)));
+
+  PH_CHECK_GENERIC(pthread_create(
+      &this->readerThread,
+      nullptr,
+      PrimeAdapterImpl::logFileReaderThreadFunc,
+      this) != -1,
+      "Cannot create file reader thread");
+  this->readerThreadRunning = true;
 }
 
 PrimeAdapterImpl::~PrimeAdapterImpl()
 {
   if (this->readerThreadRunning) {
-    struct spip_pdu *pdu = nullptr;
     this->halting = true;
+
+    if (this->fp != nullptr)
+      fclose(this->fp);
 
     spip_iface_close(&this->iface);
 
     pthread_join(this->readerThread, nullptr);
-
-    while ((pdu = this->popPdu()) != nullptr)
-      free(pdu);
   }
 
   if (this->readerMutexInitialized)
@@ -386,6 +515,12 @@ PrimeAdapter::PrimeAdapter(StringParams const &params) :
 
 }
 
+PrimeAdapter::PrimeAdapter(QString const &path) :
+  QObject(nullptr), Adapter(StringParams())
+{
+  this->logFilePath = path;
+}
+
 PrimeAdapter::PrimeAdapter(QObject *parent, const StringParams &params) :
   QObject(parent), Adapter(params)
 {
@@ -394,6 +529,8 @@ PrimeAdapter::PrimeAdapter(QObject *parent, const StringParams &params) :
 
 PrimeAdapter::~PrimeAdapter()
 {
+  this->workTimer.stop();
+
   if (this->p_impl != nullptr)
     delete this->p_impl;
 }
@@ -424,7 +561,10 @@ bool
 PrimeAdapter::initialize(void)
 {
   try {
-    this->p_impl = new PrimeAdapterImpl(this, this->getAdapterParams());
+    if (this->logFilePath.size() > 0)
+      this->p_impl = new PrimeAdapterImpl(this, this->logFilePath);
+    else
+      this->p_impl = new PrimeAdapterImpl(this, this->getAdapterParams());
 
     connect(&this->workTimer, SIGNAL(timeout()), this, SLOT(onTimeout()));
     this->workTimer.start(PLCTOOL_ADAPTER_TIMER_TIMEOUT_MS);
@@ -462,7 +602,12 @@ PrimeAdapter::setLeds(int leds)
 bool
 PrimeAdapter::work(void)
 {
-  return this->p_impl->work();
+  bool result = this->p_impl->work();
+
+  if (!result && this->p_impl->isHalted())
+    emit closed();
+
+  return result;
 }
 
 //////////////////////////////// Slots /////////////////////////////////////////

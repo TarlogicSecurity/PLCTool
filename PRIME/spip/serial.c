@@ -1,5 +1,5 @@
 /*
- * io.c: File-based I/O
+ * serial.c: Device-based I/O
  *
  * (c) 2019 Tarlogic Security S.L. - All rights reserved
  *
