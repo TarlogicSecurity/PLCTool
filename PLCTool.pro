@@ -30,7 +30,6 @@ SOURCES += main.cpp\
     PRIME/libprime/state.c \
     PRIME/PrimeAdapter.cpp \
     PRIME/spip/crc32.c \
-    PRIME/spip/io.c \
     PRIME/spip/loop.c \
     PRIME/spip/spip.c \
     App/Application.cpp \
@@ -173,7 +172,13 @@ SOURCES += main.cpp\
     gurux/src/GXXmlWriterSettings.cpp \
     Ui/DLMSLogUI.cpp \
     Ui/TranslatorUI.cpp \
-    Ui/XMLHighlighter.cpp
+    Ui/XMLHighlighter.cpp \
+    PRIME/spip/serial.c \
+    Ui/FrameTableModel.cpp \
+    Ui/LoadingStatusDialog.cpp \
+    Ui/DLMSProcessor.cpp \
+    Ui/PRIMEProcessor.cpp \
+    Ui/DLMSTableModel.cpp
 
 HEADERS  += MainWindow.h \
     Topology/Adapter.h \
@@ -357,7 +362,12 @@ HEADERS  += MainWindow.h \
     gurux/include/TranslatorTags.h \
     Ui/DLMSLogUI.h \
     Ui/TranslatorUI.h \
-    Ui/XMLHighlighter.h
+    Ui/XMLHighlighter.h \
+    Ui/FrameTableModel.h \
+    Ui/LoadingStatusDialog.h \
+    Ui/DLMSProcessor.h \
+    Ui/PRIMEProcessor.h \
+    Ui/DLMSTableModel.h
 
 
 FORMS    += Forms/MainWindow.ui \
@@ -366,6 +376,7 @@ FORMS    += Forms/MainWindow.ui \
     Forms/CredentialsUI.ui \
     Forms/FrameLogUI.ui \
     Forms/DLMSLogUI.ui \
-    Forms/TranslatorUI.ui
+    Forms/TranslatorUI.ui \
+    Forms/LoadingStatusDialog.ui
 
 unix: LIBS += -ldl

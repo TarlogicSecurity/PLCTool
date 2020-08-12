@@ -45,6 +45,7 @@ struct prime13_fragmented_pdu {
   unsigned int count;
   unsigned int last;
   struct growbuf buffer;
+  void *ctx;
 };
 
 typedef struct prime13_fragmented_pdu prime13_fragmented_pdu_t;
@@ -52,7 +53,9 @@ typedef struct prime13_fragmented_pdu prime13_fragmented_pdu_t;
 void prime13_fragmented_pdu_set_count(
     prime13_fragmented_pdu_t *self,
     unsigned int count);
-
+void prime13_fragmented_pdu_set_context(
+    prime13_fragmented_pdu_t *self,
+    void *ctx);
 void prime13_fragmented_pdu_reset(prime13_fragmented_pdu_t *self);
 BOOL prime13_fragmented_pdu_copy(
     prime13_fragmented_pdu_t *dest,
@@ -85,6 +88,11 @@ struct prime13_node {
 };
 
 typedef struct prime13_node prime13_node_t;
+
+void prime13_node_set_data_ephemereal_context(
+    prime13_node_t *self,
+    BOOL downstream,
+    void *ctx);
 
 prime13_node_t *prime13_node_new( 
   const prime13_beacon_record_t *subnet,

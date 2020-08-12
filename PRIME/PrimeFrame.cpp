@@ -462,12 +462,12 @@ PrimeFrame::deserializeGeneric(struct prime13_packet_hdr *header)
     }
   } else {
     ok = this->deserializeDATA(header->payload, header->len);
-    if (!ok) {
-      fprintf(stderr, "DESERIALIZE DATA FAILED!!!\n");
-      PrimeFrame::hexdump(
-          reinterpret_cast<uint8_t *>(header),
-          sizeof(header) + this->PDU.PKT.LEN);
-    }
+    // if (!ok) {
+    //   fprintf(stderr, "DESERIALIZE DATA FAILED!!!\n");
+    //   PrimeFrame::hexdump(
+    //       reinterpret_cast<uint8_t *>(header),
+    //       sizeof(header) + this->PDU.PKT.LEN);
+    // }
 
   }
 

@@ -13,8 +13,9 @@
 #include <Topology/Adapter.h>
 #include <QObject>
 #include <QTimer>
+#include <QDateTime>
 
-#define PLCTOOL_ADAPTER_TIMER_TIMEOUT_MS 100
+#define PLCTOOL_ADAPTER_TIMER_TIMEOUT_MS 1000
 
 namespace PLCTool {
   class PrimeAdapterImpl;
@@ -24,6 +25,7 @@ namespace PLCTool {
     Q_OBJECT
 
     QTimer workTimer;
+    QString logFilePath;
     PrimeAdapterImpl *p_impl = nullptr;
     friend class PrimeAdapterImpl;
 
@@ -33,6 +35,7 @@ namespace PLCTool {
         StringParams const &params);
 
     PrimeAdapter(StringParams const &params);
+    PrimeAdapter(QString const &path);
     ~PrimeAdapter();
     virtual bool initialize(void) override;
     virtual bool work(void) override;
@@ -48,18 +51,28 @@ namespace PLCTool {
     void onTimeout(void);
 
   signals:
-    void subnetAnnounce(PLCTool::Concentrator *, uint64_t times);
-    void meterFound(PLCTool::Concentrator *, PLCTool::Meter *);
+    void subnetAnnounce(
+        PLCTool::Concentrator *,
+        QDateTime,
+        uint64_t times);
+    void meterFound(
+        PLCTool::Concentrator *,
+        QDateTime,
+        PLCTool::Meter *);
     void frameReceived(
         PLCTool::Concentrator *,
+        QDateTime,
         bool downlink,
         const void *data,
         size_t size);
     void dataReceived(
         PLCTool::Meter *meter,
+        QDateTime,
         bool downlink,
         const void *data,
         size_t size);
+    void closed(void);
+    void refresh(void);
   };
 }
 

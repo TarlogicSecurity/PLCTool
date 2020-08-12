@@ -61,6 +61,14 @@ struct spip_ctx {
 
 typedef struct spip_ctx spip_ctx_t;
 
+#define spip_ctx_INITIALIZER \
+{                            \
+  NULL,                      \
+  0,                         \
+  { { 0 } },                 \
+  0,                         \
+}
+
 struct spip_interface {
   void *userdata;
   BOOL (*write) (void *, const void *, size_t);
@@ -72,6 +80,16 @@ struct spip_interface {
 };
 
 typedef struct spip_interface spip_iface_t;
+
+#define spip_iface_INITIALIZER \
+{                              \
+  NULL,                        \
+  NULL,                        \
+  NULL,                        \
+  NULL,                        \
+  NULL,                        \
+  spip_ctx_INITIALIZER,        \
+}
 
 /* Low level I/O methods */
 BOOL spip_iface_write(spip_iface_t *iface, const struct spip_pdu *pdu);

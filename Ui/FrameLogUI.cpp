@@ -10,90 +10,8 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
-Q_DECLARE_METATYPE(Frame *);
-
-Frame::~Frame()
-{
-  if (this->frame != nullptr)
-    delete this->frame;
-}
-
-Frame::Frame()
-{
-
-}
-
-
-Frame::Frame(const Frame &original)
-{
-  PLCTool::PrimeFrame *dup = original.frame;
-
-  if (dup != nullptr)
-    dup = new PLCTool::PrimeFrame(*dup);
-
-  this->SNA = original.SNA;
-  this->downlink = original.downlink;
-  this->bytes = original.bytes;
-  this->timeStamp = original.timeStamp;
-  this->frame = dup;
-}
-
-QString
-Frame::toHtml(void) const
-{
-  size_t size = this->bytes.size();
-  int rows = (size + 15) / 16;
-  char string[16];
-  int offset;
-  QString result = "<html><body>";
-  QString style = "border-right: solid; font-family: &quot;Cascadia Code PL&quot;";
-
-  result += "<table>\n";
-  for (int j = 0; j < rows; ++j) {
-    offset = j << 4;
-    result += "<tr><td style=\"color: red; " + style + "\">";
-    snprintf(string, sizeof(string), "%04x", offset);
-    result += string;
-    result += "  </td>";
-
-    result += "<td style=\"color: blue; " + style + "\">";
-    for (int i = 0, offset = j << 4; i < 16; ++i, ++offset) {
-      if (offset < static_cast<int>(size))
-        snprintf(string, sizeof(string), "%02x ", this->bytes[offset]);
-      else
-        strncpy(string, "   ", sizeof(string));
-
-      result += string;
-
-      if (offset == 7)
-        result += " ";
-    }
-    result += "</td>";
-
-    result += "<td style=\"" + style + "\">";
-    for (int i = 0, offset = j << 4; i < 16; ++i, ++offset) {
-      if (offset < static_cast<int>(size))
-        snprintf(
-              string,
-              sizeof(string),
-              "%c",
-              isprint(this->bytes[offset]) ? this->bytes[offset] : '.');
-      else
-        strncpy(string, " ", sizeof(string));
-
-      result += string;
-    }
-    result += "</td>";
-
-    result += "</tr>\n";
-  }
-
-  result += "</table>\n";
-  result += "</body>\n";
-  result += "</html>\n";
-
-  return result;
-}
+Q_DECLARE_METATYPE(QVector<uint8_t>)
+static bool typesRegistered = false;
 
 FrameLogUI::FrameLogUI(QWidget *parent) :
   QWidget(parent),
@@ -101,7 +19,20 @@ FrameLogUI::FrameLogUI(QWidget *parent) :
 {
   ui->setupUi(this);
 
+  this->model = new FrameTableModel(this, &this->frameList);
+  this->proxy = new QSortFilterProxyModel(this);
+
+  this->proxy->setSourceModel(this->model);
+  this->ui->frameView->setModel(this->proxy);
+  this->ui->frameView->setSortingEnabled(true);
+  this->proxy->sort(-1);
   this->connectAll();
+
+  this->processor = new PRIMEProcessor(nullptr);
+  this->procThread = new QThread(nullptr);
+  this->processor->moveToThread(this->procThread);
+  this->connectProcessor();
+  this->procThread->start();
 
   this->savedHtml = this->ui->hexEdit->toHtml();
 }
@@ -148,51 +79,23 @@ FrameLogUI::saveLog(QString path)
   }
 }
 
-int
-FrameLogUI::saveFrame(
-    const PLCTool::Concentrator *concentrator,
-    bool downlink,
-    const void *data,
-    size_t size,
-    PLCTool::PrimeFrame *dszFrame)
-{
-  Frame frame;
-
-  frame.SNA          = QString::fromStdString(
-        PLCTool::PrimeAdapter::idToSna(concentrator->id()));
-  frame.downlink     = downlink;
-  frame.bytes.reserve(size);
-  frame.timeStamp    = QDateTime::currentDateTime();
-  frame.frame        = dszFrame;
-
-
-  std::copy(
-        static_cast<const uint8_t *>(data),
-        static_cast<const uint8_t *>(data) + size,
-        std::back_inserter(frame.bytes));
-
-  this->frameList.append(frame);
-
-  return this->frameList.count() - 1;
-}
-
 void
 FrameLogUI::connectAll(void)
 {
   connect(
-        this->ui->tableWidget,
-        SIGNAL(cellActivated(int,int)),
+        this->ui->frameView,
+        SIGNAL(activated(const QModelIndex &)),
         this,
-        SLOT(onCellActivated(int,int)));
+        SLOT(onCellActivated(const QModelIndex &)));
 
   connect(
-        this->ui->tableWidget,
-        SIGNAL(cellClicked(int,int)),
+        this->ui->frameView,
+        SIGNAL(clicked(const QModelIndex &)),
         this,
-        SLOT(onCellActivated(int,int)));
+        SLOT(onCellActivated(const QModelIndex &)));
 
   connect(
-        this->ui->tableWidget->selectionModel(),
+        this->ui->frameView->selectionModel(),
         SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
         this,
         SLOT(onCurrentChanged(QModelIndex,QModelIndex)));
@@ -229,156 +132,127 @@ FrameLogUI::connectAll(void)
 }
 
 void
-FrameLogUI::colorizeRow(int row, const QColor &color)
+FrameLogUI::connectProcessor(void)
 {
-  int i;
+  // Thread lifecycle management
+  connect(
+        this->procThread,
+        SIGNAL(finished()),
+        this->procThread,
+        SLOT(deleteLater()));
 
-  if (row >= 0 && row < this->ui->tableWidget->rowCount()) {
-    for (i = 0; i < this->ui->tableWidget->columnCount(); ++i) {
-      this->ui->tableWidget->item(row, i)->setBackground(QBrush(color));
-    }
-  }
+  connect(
+        this->procThread,
+        SIGNAL(finished()),
+        this->processor,
+        SLOT(deleteLater()));
+
+  // Object message passing
+  connect(
+        this,
+        SIGNAL(frameReceived(quint64,QDateTime,bool,QVector<uint8_t>)),
+        this->processor,
+        SLOT(process(quint64,QDateTime,bool,QVector<uint8_t>)));
+
+  connect(
+        this->processor,
+        SIGNAL(frame(Frame)),
+        this,
+        SLOT(onFrame(Frame)));
 }
 
 
 void
+FrameLogUI::saveFrame(Frame const &frame)
+{
+  this->frameList.append(frame);
+}
+
+void
+FrameLogUI::refreshFrames(void)
+{
+  int rows = this->frameList.size();
+
+  this->model->refreshData();
+
+  this->ui->lineSpin->setMinimum(rows > 0 ? 1 : 0);
+  this->ui->lineSpin->setMaximum(rows);
+  this->ui->lineSpin->setEnabled(rows > 0);
+  this->ui->gotoButton->setEnabled(rows > 0);
+  this->ui->topButton->setEnabled(rows > 0);
+  this->ui->bottomButton->setEnabled(rows > 0);
+
+  if (this->ui->autoScrollButton->isChecked())
+    this->ui->frameView->scrollToBottom();
+
+  for (int i = 0; i < 8; ++i)
+    this->ui->frameView->resizeColumnToContents(i);
+}
+
+void
+FrameLogUI::registerTypes(void)
+{
+  if (!typesRegistered) {
+    qRegisterMetaType<QVector<uint8_t>>();
+    typesRegistered = true;
+  }
+  FrameTableModel::registerTypes();
+}
+
+void
 FrameLogUI::pushFrame(
     const PLCTool::Concentrator *concentrator,
+    QDateTime timeStamp,
     bool downlink,
     const void *dataBytes,
     size_t size)
 {
-  int rows = this->ui->tableWidget->rowCount();
   PLCTool::NodeId dcId = concentrator->id();
+  QVector<uint8_t> bytes;
 
-  uint8_t mac[6];
-
-  for (int i = 0; i < 6; ++i)
-    mac[i] = static_cast<uint8_t>(dcId >> ((5 - i) * 8ull));
-
-  PLCTool::PrimeFrame *frame = PLCTool::PrimeFrame::fromRawData(
-        mac,
+  std::copy(
         static_cast<const uint8_t *>(dataBytes),
-        size);
+        static_cast<const uint8_t *>(dataBytes) + size,
+        std::back_inserter(bytes));
 
-  const uint8_t *asBytes = static_cast<const uint8_t *>(dataBytes);
-  QTableWidgetItem *id = new QTableWidgetItem();
-  QTableWidgetItem *timeStamp =
-      new QTableWidgetItem(QDateTime::currentDateTime().toString());
-  QTableWidgetItem *dir = new QTableWidgetItem(downlink ? "Downlink" : "Uplink");
-  QTableWidgetItem *type = new QTableWidgetItem(
-        frame == nullptr ? "Corrupt" : frame->typeToString().c_str());
-  QTableWidgetItem *sz = new QTableWidgetItem();
-  QTableWidgetItem *SNA =
-      new QTableWidgetItem(
-        QString::fromStdString(
-          PLCTool::PrimeAdapter::idToSna(concentrator->id())));
-  char lnid[8] = "ffffff";
-  QString byteString;
+  emit frameReceived(dcId, timeStamp, downlink, bytes);
+}
 
-  if (frame != nullptr) {
-    snprintf(
-          lnid,
-          sizeof(lnid),
-          "%06x",
-          frame->PDU.macType == PLCTool::PrimeFrame::GENERIC
-           ? frame->PDU.PKT.LNID
-           : 0xffffff);
-  }
-
-  for (unsigned int i = 0; i < size; ++i) {
-    char byte[4];
-    snprintf(byte, 4, "%02x", asBytes[i]);
-    byteString += QString(byte) + " ";
-  }
-
-  QTableWidgetItem *data = new QTableWidgetItem(byteString);
-
-  id->setData(Qt::DisplayRole, QVariant::fromValue<int>(rows + 1));
-  sz->setData(Qt::DisplayRole, QVariant::fromValue<int>(size));
-
-  this->ui->tableWidget->insertRow(rows);
-  this->ui->tableWidget->setItem(
-        rows,
-        0,
-        id);
-  this->ui->tableWidget->setItem(
-        id->row(),
-        1,
-        timeStamp);
-  this->ui->tableWidget->setItem(
-        id->row(),
-        2,
-        dir);
-  this->ui->tableWidget->setItem(
-        id->row(),
-        3,
-        type);
-  this->ui->tableWidget->setItem(
-        id->row(),
-        4,
-        new QTableWidgetItem(QString(lnid)));
-  this->ui->tableWidget->setItem(
-        id->row(),
-        5,
-        sz);
-  this->ui->tableWidget->setItem(
-        id->row(),
-        6,
-        SNA);
-  this->ui->tableWidget->setItem(
-        id->row(),
-        7,
-        data);
-
-  this->ui->lineSpin->setMinimum(1);
-  this->ui->lineSpin->setMaximum(rows);
-  this->ui->lineSpin->setEnabled(true);
-  this->ui->gotoButton->setEnabled(true);
-  this->ui->topButton->setEnabled(true);
-  this->ui->bottomButton->setEnabled(true);
-
-  if (frame == nullptr) {
-    this->colorizeRow(id->row(), QColor::fromRgb(0xff, 0x80, 0x80));
-  } else if (frame->PDU.macType == PLCTool::PrimeFrame::BEACON) {
-    this->colorizeRow(id->row(), QColor::fromRgb(0xc0, 0xc0, 0xc0));
-  } else if (frame->PDU.macType == PLCTool::PrimeFrame::GENERIC) {
-    if (frame->PDU.genType == PLCTool::PrimeFrame::DATA)
-      this->colorizeRow(id->row(), QColor::fromRgb(0x80, 0xff, 0x80));
-  }
-
-  this->ui->tableWidget->resizeColumnsToContents();
-
-  if (this->ui->autoScrollButton->isChecked())
-    this->ui->tableWidget->scrollToBottom();
-
-  // Don't delete the frame. Just save it.
-  id->setData(
-        Qt::UserRole,
-        QVariant::fromValue(
-          this->saveFrame(concentrator, downlink, dataBytes, size, frame)));
+void
+FrameLogUI::selectNear(
+    QDateTime const &,
+    PLCTool::PrimeFrame::GenericType,
+    PLCTool::NodeId)
+{
 
 }
 
 FrameLogUI::~FrameLogUI()
 {
+  this->procThread->quit();
+
   delete ui;
 }
 
 
 //////////////////////////////////// Slots ////////////////////////////////////
 void
-FrameLogUI::onCellActivated(int row, int)
+FrameLogUI::onCellActivated(const QModelIndex &index)
 {
   Frame *frame = nullptr;
+  int row = index.row();
 
-  if (row >= 0 && row < this->ui->tableWidget->rowCount()) {
-    int ndx = this->ui->tableWidget->item(row, 0)->data(Qt::UserRole).value<int>();
+  if (row >= 0 && row < this->proxy->rowCount()) {
+    QModelIndex trueIndex = this->proxy->mapToSource(index);
+
+    int ndx = this->model->data(trueIndex, Qt::UserRole).value<int>();
+
     if (ndx >= 0 && ndx < this->frameList.count())
       frame = &this->frameList[ndx];
   }
 
   if (frame != nullptr) {
+    emit frameSelected(*frame);
     this->ui->hexEdit->setHtml(frame->toHtml());
     this->ui->pktEdit->setText(frame->frame != nullptr
           ? QString::fromStdString(frame->frame->toString())
@@ -392,7 +266,7 @@ FrameLogUI::onCellActivated(int row, int)
 void
 FrameLogUI::onCurrentChanged(QModelIndex curr, QModelIndex)
 {
-  onCellActivated(curr.row(), curr.column());
+  onCellActivated(curr);
 }
 
 void
@@ -416,7 +290,7 @@ void
 FrameLogUI::onClear(bool)
 {
   this->frameList.clear();
-  this->ui->tableWidget->setRowCount(0);
+  this->refreshFrames();
   this->ui->hexEdit->setHtml(this->savedHtml);
   this->ui->pktEdit->setText("");
   this->ui->lineSpin->setMinimum(0);
@@ -430,20 +304,26 @@ FrameLogUI::onClear(bool)
 void
 FrameLogUI::onTop(void)
 {
-  this->ui->tableWidget->scrollToTop();
+  this->ui->frameView->scrollToTop();
 }
 
 void
 FrameLogUI::onBottom(void)
 {
-  this->ui->tableWidget->scrollToBottom();
+  this->ui->frameView->scrollToBottom();
 }
 
 void
 FrameLogUI::onGotoLine(void)
 {
-  this->ui->tableWidget->scrollTo(
-        this->ui->tableWidget->model()->index(
+  this->ui->frameView->scrollTo(
+        this->ui->frameView->model()->index(
           this->ui->lineSpin->value() - 1,
           0));
+}
+
+void
+FrameLogUI::onFrame(Frame frame)
+{
+  this->saveFrame(frame);
 }

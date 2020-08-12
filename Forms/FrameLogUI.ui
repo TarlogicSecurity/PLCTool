@@ -123,7 +123,7 @@
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
-     <widget class="QTableWidget" name="tableWidget">
+     <widget class="QTreeView" name="frameView">
       <property name="font">
        <font>
         <family>Cascadia Code PL</family>
@@ -138,70 +138,12 @@
       <property name="selectionBehavior">
        <enum>QAbstractItemView::SelectRows</enum>
       </property>
+      <property name="uniformRowHeights">
+       <bool>true</bool>
+      </property>
       <property name="sortingEnabled">
        <bool>true</bool>
       </property>
-      <attribute name="horizontalHeaderCascadingSectionResizes">
-       <bool>true</bool>
-      </attribute>
-      <attribute name="horizontalHeaderDefaultSectionSize">
-       <number>60</number>
-      </attribute>
-      <attribute name="horizontalHeaderMinimumSectionSize">
-       <number>1</number>
-      </attribute>
-      <attribute name="horizontalHeaderStretchLastSection">
-       <bool>true</bool>
-      </attribute>
-      <attribute name="verticalHeaderVisible">
-       <bool>false</bool>
-      </attribute>
-      <attribute name="verticalHeaderDefaultSectionSize">
-       <number>14</number>
-      </attribute>
-      <attribute name="verticalHeaderMinimumSectionSize">
-       <number>14</number>
-      </attribute>
-      <column>
-       <property name="text">
-        <string>ID</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Timestamp</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Direction</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Type</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>LNID</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Size</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>SNA</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Bytes</string>
-       </property>
-      </column>
      </widget>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">

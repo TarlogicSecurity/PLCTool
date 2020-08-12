@@ -33,7 +33,11 @@ fail:
 }
 
 BOOL
-prime13_layer_feed(prime13_layer_t *self, const void *data, size_t size)
+prime13_layer_feed_extended(
+    prime13_layer_t *self,
+    const struct timeval *timestamp,
+    const void *data,
+    size_t size)
 {
   const struct prime13_state_pdu_info *info;
   prime13_beacon_record_t *beacon_record;
@@ -44,44 +48,51 @@ prime13_layer_feed(prime13_layer_t *self, const void *data, size_t size)
 
   TRY(prime13_state_feed(self->state, data, size));
 
+  if (timestamp != NULL)
+    self->feed_time = *timestamp;
+
   info = prime13_state_get_pdu_info(self->state);
   beacon_record = prime13_state_get_beacon_record(self->state);
 
   /* Generic Prime frame callback */
   if (self->callbacks.on_frame != NULL) {
     if (info != NULL) {
-      TRY((self->callbacks.on_frame) (
+      if (!(self->callbacks.on_frame) (
           self->callbacks.userdata,
           info->node->subnet->sna,
           info->direction,
           data,
-          size));
+          size))
+        goto fail;
     } else if (beacon_record != NULL) {
-      TRY((self->callbacks.on_frame) (
+      if (!(self->callbacks.on_frame) (
           self->callbacks.userdata,
           beacon_record->sna,
           FALSE,
           data,
-          size));
+          size))
+        goto fail;
     }
   }
 
   /* Beacon callback */
   if (self->callbacks.on_subnet != NULL) {
     if (beacon_record != NULL)
-      TRY((self->callbacks.on_subnet)(
+      if (!(self->callbacks.on_subnet)(
           self,
           beacon_record->sna,
           beacon_record->count,
-          self->callbacks.userdata));
-
+          self->callbacks.userdata))
+        goto fail;
   }
 
   /* New meter found callback */
   if (self->callbacks.on_meter != NULL && info != NULL) {
     if (prime13_node_is_new(info->node)) {
       prime13_node_ack(info->node);
-      TRY(userdata = (self->callbacks.on_meter) (self, info->node));
+      if ((userdata = (self->callbacks.on_meter) (self, info->node)) == NULL)
+        goto fail;
+
       info->node->userdata = userdata;
     }
   }
@@ -96,23 +107,42 @@ prime13_layer_feed(prime13_layer_t *self, const void *data, size_t size)
           info->direction,
           &pdata,
           &psize)) {
-          TRY((self->callbacks.on_data) (
+          if (!(self->callbacks.on_data) (
             self,
             info->node,
             info->node->userdata,
             info->direction,
             pdata,
-            psize));
+            psize))
+            goto fail;
         }
       }        
     }
   }
+
+  if (info != NULL) {
+    prime13_node_set_data_ephemereal_context(info->node, TRUE,  NULL);
+    prime13_node_set_data_ephemereal_context(info->node, FALSE, NULL);
+  }
   
   ok = TRUE;
   
-  fail:
+fail:
 
   return ok;
+}
+
+BOOL
+prime13_layer_feed(
+    prime13_layer_t *self,
+    const void *data,
+    size_t size)
+{
+  struct timeval tv;
+
+  gettimeofday(&tv, NULL);
+
+  return prime13_layer_feed_extended(self, &tv, data, size);
 }
 
 BOOL

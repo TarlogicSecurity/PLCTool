@@ -19,6 +19,7 @@ class Application : public QApplication
 
   void parseDataFrame(
       PLCTool::Meter *meter,
+      QDateTime,
       bool downlink,
       const void *data,
       size_t size);
@@ -31,6 +32,7 @@ public:
   ~Application();
 
   bool openAdapter(QString const &path, unsigned int baud = 921600);
+  bool loadLogFile(QString const &path);
   bool closeAdapter(void);
 
   bool work(void);
@@ -38,20 +40,31 @@ public:
 signals:
 
 public slots:
-  void onSubnetAnnounce(PLCTool::Concentrator *, uint64_t times);
-  void onMeterFound(PLCTool::Concentrator *, PLCTool::Meter *);
+  void onSubnetAnnounce(
+      PLCTool::Concentrator *,
+      QDateTime,
+      uint64_t times);
+  void onMeterFound(
+      PLCTool::Concentrator *,
+      QDateTime,
+      PLCTool::Meter *);
   void onFrameReceived(
       PLCTool::Concentrator *,
+      QDateTime,
       bool downlink,
       const void *data,
       size_t size);
   void onDataReceived(
       PLCTool::Meter *meter,
+      QDateTime,
       bool downlink,
       const void *data,
       size_t size);
 
+  void onAdapterClosed(void);
+  void onAdapterRefreshRequested(void);
   void onOpenAdapter(void);
+  void onOpenLogFile(QString);
   void onCloseAdapter(void);
 };
 

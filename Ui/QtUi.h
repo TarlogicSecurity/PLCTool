@@ -6,19 +6,34 @@
 #include "Topology/Adapter.h"
 #include "ModemDialog.h"
 #include "MainWindow.h"
+#include "LoadingStatusDialog.h"
+#include "FrameLogUI.h"
+#include "DLMSLogUI.h"
+#include <QElapsedTimer>
 
+struct Frame;
+struct DlmsMessage;
 
 class QtUi : public QObject
 {
   Q_OBJECT
 
+  unsigned int frameCounter = 0;
+
   // Ui-related objects
   MainWindow *mainWindow = nullptr;
   ModemDialog *modemDialog = nullptr;
 
+  LoadingStatusDialog *loadingDialog = nullptr;
+
+  FrameLogUI *frameLogUi = nullptr;
+  DLMSLogUI *dlmsLogUi = nullptr;
+  QElapsedTimer refreshTimer;
+
   // UI state
   bool firstConnection = true;
 
+  void breathe(void);
   void connectAll(void);
 
 public:
@@ -27,6 +42,8 @@ public:
 
   void show(void);
 
+  void setLoading(bool);
+  void loadingMessage(QString);
 
   // GUI Operations
   void setAdapter(PLCTool::Adapter *);
@@ -39,12 +56,14 @@ public:
 
   void pushFrame(
       const PLCTool::Concentrator *,
+      QDateTime,
       bool downlink,
       const void *data,
       size_t size);
 
   void pushData(
       const PLCTool::Concentrator *dc,
+      QDateTime,
       PLCTool::NodeId meter,
       bool downlink,
       const void *data,
@@ -52,8 +71,11 @@ public:
 
   void pushCreds(
       const PLCTool::Concentrator *dc,
+      QDateTime,
       PLCTool::NodeId meter,
       QString password);
+
+  void refreshFrames(void);
 
   // Convenience getters
   QString modemPath(void) const;
@@ -61,11 +83,16 @@ public:
 
 signals:
   void openAdapter(void);
+  void openLogFile(QString);
   void closeAdapter(void);
 
 public slots:
+  void onLoadFile(void);
   void onToggleStart(void);
   void onOpenConfig(void);
+  void onSelectFrame(Frame &);
+  void onSelectDlmsMessage(DlmsMessage &);
+  void onRejectLoading(void);
 };
 
 #endif // UI_UI_H

@@ -69,6 +69,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionConnect"/>
+   <addaction name="actionLoad"/>
    <addaction name="actionCredentials"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
@@ -90,6 +91,11 @@
   <action name="actionCredentials">
    <property name="text">
     <string>Credentials</string>
+   </property>
+  </action>
+  <action name="actionLoad">
+   <property name="text">
+    <string>Load</string>
    </property>
   </action>
  </widget>

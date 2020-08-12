@@ -119,6 +119,18 @@ prime13_fragmented_pdu_set_count(
 }
 
 void
+prime13_fragmented_pdu_set_context(prime13_fragmented_pdu_t *self, void *ctx)
+{
+  self->ctx = ctx;
+}
+
+void *
+prime13_fragmented_pdu_get_context(const prime13_fragmented_pdu_t *self)
+{
+  return self->ctx;
+}
+
+void
 prime13_fragmented_pdu_reset(prime13_fragmented_pdu_t *self)
 {
   self->last = -1;
@@ -222,6 +234,18 @@ fail:
     prime13_node_destroy(new);
 
   return NULL;
+}
+
+void
+prime13_node_set_data_ephemereal_context(
+    prime13_node_t *self,
+    BOOL downstream,
+    void *ctx)
+{
+  if (downstream)
+    prime13_fragmented_pdu_set_context(&self->down, ctx);
+  else
+    prime13_fragmented_pdu_set_context(&self->up, ctx);
 }
 
 void
