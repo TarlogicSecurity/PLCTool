@@ -48,6 +48,7 @@ public:
       const void *data,
       size_t size);
 
+  void clear(void);
   void refreshFrames(void);
   void selectNear(
       QDateTime const &,
