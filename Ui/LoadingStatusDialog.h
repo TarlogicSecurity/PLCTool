@@ -16,6 +16,7 @@ public:
   ~LoadingStatusDialog();
 
   void setStatus(QString);
+  void setLimits(unsigned int curr, unsigned int max);
 
 private:
   Ui::LoadingStatusDialog *ui;

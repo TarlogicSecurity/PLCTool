@@ -18,7 +18,8 @@ class QtUi : public QObject
 {
   Q_OBJECT
 
-  unsigned int frameCounter = 0;
+  unsigned int parsedFrameCounter = 0;
+  unsigned int totalFrameCounter = 0;
 
   // Ui-related objects
   MainWindow *mainWindow = nullptr;
@@ -41,7 +42,7 @@ public:
   ~QtUi();
 
   void show(void);
-
+  void setCounters(unsigned int, unsigned int);
   void setLoading(bool);
   void loadingMessage(QString);
 

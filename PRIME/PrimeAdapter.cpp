@@ -54,6 +54,9 @@ namespace PLCTool {
     bool halting = false;
     bool halted = false;
 
+    unsigned int totalCount = 0;
+    unsigned int parsedCount = 0;
+
     void lock(void);
     void unlock(void);
 
@@ -73,6 +76,18 @@ namespace PLCTool {
     void setLeds(int leds);
 
     ~PrimeAdapterImpl();
+
+    inline unsigned int
+    totalFrameCount(void) const
+    {
+      return this->totalCount;
+    }
+
+    inline unsigned int
+    parsedFrameCount(void) const
+    {
+      return this->parsedCount;
+    }
 
     inline bool
     isHalted(void) const
@@ -218,6 +233,14 @@ PrimeAdapterImpl::logFileReaderThreadFunc(void *userdata)
   PrimeAdapterImpl *self = static_cast<PrimeAdapterImpl *>(userdata);
   char *line = nullptr;
 
+  char b;
+
+  while (fread(&b, 1, 1, self->fp) == 1)
+    if (b == '\n')
+      ++self->totalCount;
+
+  fseek(self->fp, 0, SEEK_SET);
+
   while ((line = fread_line(self->fp)) != nullptr) {
     arg_list_t *al;
 
@@ -315,6 +338,8 @@ PrimeAdapterImpl::onFrame(
   PrimeAdapterImpl *impl = static_cast<PrimeAdapterImpl *>(user);
   NodeId dcId = PrimeAdapterImpl::snaToNodeId(sna);
   Concentrator *dc = impl->owner->assertConcentrator(dcId);
+
+  ++impl->parsedCount;
 
   emit impl->owner->frameReceived(
         dc,
@@ -597,6 +622,18 @@ void
 PrimeAdapter::setLeds(int leds)
 {
   this->p_impl->setLeds(leds);
+}
+
+unsigned int
+PrimeAdapter::totalFrameCount(void) const
+{
+  return this->p_impl->totalFrameCount();
+}
+
+unsigned int
+PrimeAdapter::parsedFrameCount(void) const
+{
+  return this->p_impl->parsedFrameCount();
 }
 
 bool

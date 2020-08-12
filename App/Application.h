@@ -61,6 +61,7 @@ public slots:
       const void *data,
       size_t size);
 
+  void onAdapterStatusMessage(QString);
   void onAdapterClosed(void);
   void onAdapterRefreshRequested(void);
   void onOpenAdapter(void);
