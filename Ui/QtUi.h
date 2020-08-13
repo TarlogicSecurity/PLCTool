@@ -55,20 +55,8 @@ public:
   void openDlmsLog(void);
   void openTranslator(void);
 
-  void pushFrame(
-      const PLCTool::Concentrator *,
-      QDateTime,
-      bool downlink,
-      const void *data,
-      size_t size);
-
-  void pushData(
-      const PLCTool::Concentrator *dc,
-      QDateTime,
-      PLCTool::NodeId meter,
-      bool downlink,
-      const void *data,
-      size_t size);
+  void pushFrame(Frame const &);
+  void pushDlmsMessage(DlmsMessage const &);
 
   void pushCreds(
       const PLCTool::Concentrator *dc,

@@ -151,63 +151,6 @@ DLMSLogUI::connectAll(void)
 }
 
 void
-DLMSLogUI::pushMessage(
-    const PLCTool::Concentrator *concentrator,
-    QDateTime timeStamp,
-    const PLCTool::NodeId id,
-    bool downlink,
-    const void *dataBytes,
-    size_t size)
-{
-  QVector<uint8_t> data;
-
-  data.resize(size);
-
-  std::copy(
-        static_cast<const uint8_t *>(dataBytes),
-        static_cast<const uint8_t *>(dataBytes) + size,
-        std::begin(data));
-
-  emit messageReceived(
-        QString::fromStdString(
-          PLCTool::PrimeAdapter::idToSna(concentrator->id())),
-        timeStamp,
-        id,
-        downlink,
-        data);
-}
-
-void
-DLMSLogUI::connectProcessor(void)
-{
-  // Thread lifecycle management
-  connect(
-        this->procThread,
-        SIGNAL(finished()),
-        this->procThread,
-        SLOT(deleteLater()));
-
-  connect(
-        this->procThread,
-        SIGNAL(finished()),
-        this->processor,
-        SLOT(deleteLater()));
-
-  // Object message passing
-  connect(
-        this,
-        SIGNAL(messageReceived(QString,QDateTime,quint64,bool,QVector<uint8_t>)),
-        this->processor,
-        SLOT(process(QString,QDateTime,quint64,bool,QVector<uint8_t>)));
-
-  connect(
-        this->processor,
-        SIGNAL(dlmsMessage(DlmsMessage)),
-        this,
-        SLOT(onDlmsMessage(DlmsMessage)));
-}
-
-void
 DLMSLogUI::registerTypes(void)
 {
   DLMSProcessor::registerTypes();
@@ -237,20 +180,11 @@ DLMSLogUI::DLMSLogUI(QWidget *parent) :
 
   this->highlighter = new XMLHighlighter(this->ui->xmlEdit->document());
 
-  this->processor = new DLMSProcessor(nullptr);
-  this->procThread = new QThread(nullptr);
-  this->processor->moveToThread(this->procThread);
-  this->connectProcessor();
-  this->procThread->start();
-
   this->savedText = this->ui->xmlEdit->toPlainText();
 }
 
 DLMSLogUI::~DLMSLogUI()
 {
-  if (this->procThread != nullptr)
-    this->procThread->quit();
-
   delete ui;
 }
 
@@ -333,10 +267,4 @@ DLMSLogUI::onGotoLine(void)
         this->ui->messageView->model()->index(
           this->ui->lineSpin->value() - 1,
           0));
-}
-
-void
-DLMSLogUI::onDlmsMessage(DlmsMessage msg)
-{
-  this->saveMessage(msg);
 }

@@ -1,4 +1,4 @@
-#include "Ui/FrameTableModel.h"
+#include "FrameTableModel.h"
 #include <QColor>
 
 void
