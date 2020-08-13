@@ -42,7 +42,19 @@
          </widget>
         </item>
         <item row="1" column="0">
-         <widget class="QTreeView" name="topologyView"/>
+         <widget class="QTreeView" name="topologyView">
+          <property name="font">
+           <font>
+            <family>Cascadia Code PL</family>
+           </font>
+          </property>
+          <property name="sizeAdjustPolicy">
+           <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SingleSelection</enum>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
