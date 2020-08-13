@@ -13,6 +13,19 @@ Application::Application(int &argc, char *argv[]) : QApplication(argc, argv)
   this->ui = new QtUi(this);
 
   this->connectUi();
+
+  this->dlmsProcessor = new DLMSProcessor(nullptr);
+  this->dlmsProcThread = new QThread(nullptr);
+  this->dlmsProcessor->moveToThread(this->dlmsProcThread);
+
+  this->primeProcessor = new PRIMEProcessor(nullptr);
+  this->primeProcThread = new QThread(nullptr);
+  this->primeProcessor->moveToThread(this->primeProcThread);
+
+  this->connectProcessors();
+
+  this->primeProcThread->start();
+  this->dlmsProcThread->start();
 }
 
 bool
@@ -24,8 +37,68 @@ Application::work(void)
 
 Application::~Application()
 {
+  if (this->primeProcThread != nullptr)
+    this->primeProcThread->quit();
+
+  if (this->dlmsProcThread != nullptr)
+    this->dlmsProcThread->quit();
+
   if (this->ui != nullptr)
     delete this->ui;
+}
+
+void
+Application::connectProcessors(void)
+{
+  // Thread lifecycle management
+  connect(
+        this->primeProcThread,
+        SIGNAL(finished()),
+        this->primeProcThread,
+        SLOT(deleteLater()));
+
+  connect(
+        this->primeProcThread,
+        SIGNAL(finished()),
+        this->primeProcessor,
+        SLOT(deleteLater()));
+
+  connect(
+        this->dlmsProcThread,
+        SIGNAL(finished()),
+        this->dlmsProcThread,
+        SLOT(deleteLater()));
+
+  connect(
+        this->dlmsProcThread,
+        SIGNAL(finished()),
+        this->dlmsProcessor,
+        SLOT(deleteLater()));
+
+  // Object message passing
+  connect(
+        this,
+        SIGNAL(frameReceived(quint64,QDateTime,bool,QVector<uint8_t>)),
+        this->primeProcessor,
+        SLOT(process(quint64,QDateTime,bool,QVector<uint8_t>)));
+
+  connect(
+        this->primeProcessor,
+        SIGNAL(frame(Frame)),
+        this,
+        SLOT(onProcessedFrame(Frame)));
+
+  connect(
+        this,
+        SIGNAL(messageReceived(QString,QDateTime,quint64,bool,QVector<uint8_t>)),
+        this->dlmsProcessor,
+        SLOT(process(QString,QDateTime,quint64,bool,QVector<uint8_t>)));
+
+  connect(
+        this->dlmsProcessor,
+        SIGNAL(dlmsMessage(DlmsMessage)),
+        this,
+        SLOT(onProcessedDlmsMessage(DlmsMessage)));
 }
 
 bool
@@ -180,7 +253,7 @@ void
 Application::parseDataFrame(
     PLCTool::Meter *meter,
     QDateTime timeStamp,
-    bool downlink,
+    bool,
     const void *data,
     size_t size)
 {
@@ -194,9 +267,9 @@ Application::parseDataFrame(
   bool pwdFound = false;
   bool infoFound = false;
   std::string password;
-  const uint8_t *p = nullptr;
   PLCTool::Concentrator *dc =
       static_cast<PLCTool::Concentrator *>(meter->parent()->parent());
+  const uint8_t *p = nullptr;
 
   if (size < 3)
     return;
@@ -205,8 +278,6 @@ Application::parseDataFrame(
   asBytes += 3;
   data = asBytes;
   size -= 3;
-
-  this->ui->pushData(dc, timeStamp, meter->id(), downlink, data, size);
 
   TRY(stream = ber_stream_copy(data, size));
   TRY(ber_stream_read_uint8(stream, cmd));
@@ -313,13 +384,25 @@ Application::onCloseAdapter(void)
 
 void
 Application::onFrameReceived(
-    PLCTool::Concentrator *c,
+    PLCTool::Concentrator *dc,
     QDateTime timeStamp,
     bool downlink,
     const void *data,
     size_t size)
 {
-  this->ui->pushFrame(c, timeStamp, downlink, data, size);
+  PLCTool::NodeId dcId = dc->id();
+  QVector<uint8_t> bytes;
+
+  this->ui->setCounters(
+        this->adapter->parsedFrameCount(),
+        this->adapter->totalFrameCount());
+
+  std::copy(
+        static_cast<const uint8_t *>(data),
+        static_cast<const uint8_t *>(data) + size,
+        std::back_inserter(bytes));
+
+  emit frameReceived(dcId, timeStamp, downlink, bytes);
 }
 
 void
@@ -330,10 +413,26 @@ Application::onDataReceived(
     const void *data,
     size_t size)
 {
+  QVector<uint8_t> bytes;
+  PLCTool::Concentrator *dc =
+      static_cast<PLCTool::Concentrator *>(meter->parent()->parent());
+
+  bytes.resize(size);
+
   this->parseDataFrame(meter, timeStamp, downlink, data, size);
-  this->ui->setCounters(
-        this->adapter->parsedFrameCount(),
-        this->adapter->totalFrameCount());
+
+  std::copy(
+        static_cast<const uint8_t *>(data),
+        static_cast<const uint8_t *>(data) + size,
+        std::begin(bytes));
+
+  emit messageReceived(
+        QString::fromStdString(
+          PLCTool::PrimeAdapter::idToSna(dc->id())),
+        timeStamp,
+        meter->id(),
+        downlink,
+        bytes);
 }
 
 void
@@ -372,4 +471,16 @@ void
 Application::onAdapterStatusMessage(QString message)
 {
   this->ui->loadingMessage(message);
+}
+
+void
+Application::onProcessedFrame(Frame frame)
+{
+  this->ui->pushFrame(frame);
+}
+
+void
+Application::onProcessedDlmsMessage(DlmsMessage message)
+{
+  this->ui->pushDlmsMessage(message);
 }

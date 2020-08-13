@@ -9,13 +9,25 @@
 #include "PRIME/PrimeAdapter.h"
 #include "QVector"
 
+#include "PRIMEProcessor.h"
+#include "DLMSProcessor.h"
+
 class Application : public QApplication
 {
   Q_OBJECT
 
-  QtUi *ui = nullptr;
+  // Data model objects
   PLCTool::PrimeAdapter *adapter = nullptr;
   QVector<PLCTool::SubNet *> subNetHistory;
+
+  QThread *primeProcThread = nullptr;
+  QThread *dlmsProcThread = nullptr;
+
+  PRIMEProcessor *primeProcessor = nullptr;
+  DLMSProcessor *dlmsProcessor = nullptr;
+
+  // UI objects
+  QtUi *ui = nullptr;
 
   void parseDataFrame(
       PLCTool::Meter *meter,
@@ -26,6 +38,7 @@ class Application : public QApplication
 
   void connectAdapter(void);
   void connectUi(void);
+  void connectProcessors(void);
 
 public:
   explicit Application(int &argc, char *argv[]);
@@ -38,6 +51,18 @@ public:
   bool work(void);
 
 signals:
+  void frameReceived(
+      quint64 dcId,
+      QDateTime timeStamp,
+      bool downlink,
+      QVector<uint8_t>);
+
+  void messageReceived(
+      QString SNA,
+      QDateTime timeStamp,
+      quint64 id,
+      bool downlink,
+      QVector<uint8_t>);
 
 public slots:
   void onSubnetAnnounce(
@@ -67,6 +92,9 @@ public slots:
   void onOpenAdapter(void);
   void onOpenLogFile(QString);
   void onCloseAdapter(void);
+
+  void onProcessedFrame(Frame);
+  void onProcessedDlmsMessage(DlmsMessage);
 };
 
 #endif // APPLICATION_H

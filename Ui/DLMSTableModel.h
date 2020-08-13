@@ -5,7 +5,7 @@
 #include <PRIME/PrimeFrame.h>
 #include <QDateTime>
 #include <QVector>
-#include "DLMSProcessor.h"
+#include <App/DLMSProcessor.h>
 
 class DLMSTableModel : public QAbstractTableModel
 {

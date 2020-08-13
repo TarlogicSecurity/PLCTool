@@ -194,12 +194,7 @@ QtUi::openTranslator(void)
 
 
 void
-QtUi::pushFrame(
-    const PLCTool::Concentrator *concentrator,
-    QDateTime timeStamp,
-    bool downlink,
-    const void *data,
-    size_t size)
+QtUi::pushFrame(Frame const &frame)
 {
   if (this->frameLogUi == nullptr) {
     QSaneMdiSubWindow *sw = this->mainWindow->findWindow("FrameLog");
@@ -209,12 +204,7 @@ QtUi::pushFrame(
   }
 
   if (this->frameLogUi != nullptr) {
-    this->frameLogUi->pushFrame(
-          concentrator,
-          timeStamp,
-          downlink,
-          data,
-          size);
+    this->frameLogUi->saveFrame(frame);
 
     this->breathe();
   }
@@ -231,6 +221,22 @@ QtUi::refreshFrames(void)
 }
 
 void
+QtUi::pushDlmsMessage(DlmsMessage const &message)
+{
+  if (this->dlmsLogUi == nullptr) {
+    QSaneMdiSubWindow *sw = this->mainWindow->findWindow("DlmsLog");
+
+    if (sw != nullptr)
+      this->dlmsLogUi = static_cast<DLMSLogUI *>(sw->widget());
+  }
+
+  if (this->dlmsLogUi != nullptr) {
+    this->dlmsLogUi->saveMessage(message);
+    this->breathe();
+  }
+}
+
+void
 QtUi::pushCreds(
     const PLCTool::Concentrator *dc,
     QDateTime timeStamp,
@@ -243,28 +249,6 @@ QtUi::pushCreds(
     CredentialsUI *ui = static_cast<CredentialsUI *>(sw->widget());
 
     ui->pushCreds(dc, timeStamp, meter, password);
-    this->breathe();
-  }
-}
-
-void
-QtUi::pushData(
-    const PLCTool::Concentrator *dc,
-    QDateTime timeStamp,
-    PLCTool::NodeId meter,
-    bool downlink,
-    const void *data,
-    size_t size)
-{
-  if (this->dlmsLogUi == nullptr) {
-    QSaneMdiSubWindow *sw = this->mainWindow->findWindow("DlmsLog");
-
-    if (sw != nullptr)
-      this->dlmsLogUi = static_cast<DLMSLogUI *>(sw->widget());
-  }
-
-  if (this->dlmsLogUi != nullptr) {
-    this->dlmsLogUi->pushMessage(dc, timeStamp, meter, downlink, data, size);
     this->breathe();
   }
 }

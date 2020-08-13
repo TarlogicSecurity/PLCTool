@@ -5,7 +5,7 @@
 #include <PRIME/PrimeFrame.h>
 #include <QDateTime>
 #include <QVector>
-#include "PRIMEProcessor.h"
+#include <App/PRIMEProcessor.h>
 
 class FrameTableModel : public QAbstractTableModel
 {

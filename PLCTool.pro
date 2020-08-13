@@ -176,9 +176,9 @@ SOURCES += main.cpp\
     PRIME/spip/serial.c \
     Ui/FrameTableModel.cpp \
     Ui/LoadingStatusDialog.cpp \
-    Ui/DLMSProcessor.cpp \
-    Ui/PRIMEProcessor.cpp \
-    Ui/DLMSTableModel.cpp
+    Ui/DLMSTableModel.cpp \
+    App/DLMSProcessor.cpp \
+    PRIMEProcessor.cpp
 
 HEADERS  += MainWindow.h \
     Topology/Adapter.h \
@@ -365,9 +365,9 @@ HEADERS  += MainWindow.h \
     Ui/XMLHighlighter.h \
     Ui/FrameTableModel.h \
     Ui/LoadingStatusDialog.h \
-    Ui/DLMSProcessor.h \
-    Ui/PRIMEProcessor.h \
-    Ui/DLMSTableModel.h
+    Ui/DLMSTableModel.h \
+    App/DLMSProcessor.h \
+    App/PRIMEProcessor.h
 
 
 FORMS    += Forms/MainWindow.ui \

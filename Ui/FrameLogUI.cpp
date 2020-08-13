@@ -28,12 +28,6 @@ FrameLogUI::FrameLogUI(QWidget *parent) :
   this->proxy->sort(-1);
   this->connectAll();
 
-  this->processor = new PRIMEProcessor(nullptr);
-  this->procThread = new QThread(nullptr);
-  this->processor->moveToThread(this->procThread);
-  this->connectProcessor();
-  this->procThread->start();
-
   this->savedHtml = this->ui->hexEdit->toHtml();
 }
 
@@ -132,36 +126,6 @@ FrameLogUI::connectAll(void)
 }
 
 void
-FrameLogUI::connectProcessor(void)
-{
-  // Thread lifecycle management
-  connect(
-        this->procThread,
-        SIGNAL(finished()),
-        this->procThread,
-        SLOT(deleteLater()));
-
-  connect(
-        this->procThread,
-        SIGNAL(finished()),
-        this->processor,
-        SLOT(deleteLater()));
-
-  // Object message passing
-  connect(
-        this,
-        SIGNAL(frameReceived(quint64,QDateTime,bool,QVector<uint8_t>)),
-        this->processor,
-        SLOT(process(quint64,QDateTime,bool,QVector<uint8_t>)));
-
-  connect(
-        this->processor,
-        SIGNAL(frame(Frame)),
-        this,
-        SLOT(onFrame(Frame)));
-}
-
-void
 FrameLogUI::clear(void)
 {
   this->onClear(false);
@@ -205,25 +169,6 @@ FrameLogUI::registerTypes(void)
 }
 
 void
-FrameLogUI::pushFrame(
-    const PLCTool::Concentrator *concentrator,
-    QDateTime timeStamp,
-    bool downlink,
-    const void *dataBytes,
-    size_t size)
-{
-  PLCTool::NodeId dcId = concentrator->id();
-  QVector<uint8_t> bytes;
-
-  std::copy(
-        static_cast<const uint8_t *>(dataBytes),
-        static_cast<const uint8_t *>(dataBytes) + size,
-        std::back_inserter(bytes));
-
-  emit frameReceived(dcId, timeStamp, downlink, bytes);
-}
-
-void
 FrameLogUI::selectNear(
     QDateTime const &,
     PLCTool::PrimeFrame::GenericType,
@@ -234,8 +179,6 @@ FrameLogUI::selectNear(
 
 FrameLogUI::~FrameLogUI()
 {
-  this->procThread->quit();
-
   delete ui;
 }
 
@@ -325,10 +268,4 @@ FrameLogUI::onGotoLine(void)
         this->ui->frameView->model()->index(
           this->ui->lineSpin->value() - 1,
           0));
-}
-
-void
-FrameLogUI::onFrame(Frame frame)
-{
-  this->saveFrame(frame);
 }
