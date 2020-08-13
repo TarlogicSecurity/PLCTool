@@ -249,6 +249,55 @@ Application::connectUi(void)
         SLOT(onOpenLogFile(QString)));
 }
 
+static std::string
+getMeterNameFromAPTitle(const ber_type_t *type)
+{
+  unsigned char *asBytes = NULL;
+  unsigned int field_count = type->field_count;
+  unsigned long count;
+  std::string title;
+
+  if (field_count != 1)
+    goto done;
+
+  count = type->field_list[0]->bytecount;
+  asBytes = type->field_list[0]->bytebuf;
+
+  if (count >= 3
+      && isprint(asBytes[0])
+      && isprint(asBytes[1])
+      && isprint(asBytes[2])) {
+    bool allPrintable = true;
+    char hex[4];
+    for (unsigned long i = 3;
+         i < count && allPrintable;
+         ++i)
+      allPrintable = allPrintable && isprint(asBytes[i]);
+
+    if (allPrintable) {
+      std::copy(
+            reinterpret_cast<char *>(asBytes),
+            reinterpret_cast<char *>(asBytes) + count,
+            std::back_inserter(title));
+    } else {
+      std::copy(
+            reinterpret_cast<char *>(asBytes),
+            reinterpret_cast<char *>(asBytes) + 3,
+            std::back_inserter(title));
+
+      title += " (";
+      for (unsigned long i = 3; i < count; ++i) {
+        snprintf(hex, 4, "%02x", asBytes[i]);
+        title += hex;
+      }
+      title += ")";
+    }
+  }
+
+done:
+  return title;
+}
+
 void
 Application::parseDataFrame(
     PLCTool::Meter *meter,
@@ -331,6 +380,12 @@ Application::parseDataFrame(
               }
             }
             break;
+
+          // CallingAPTitle
+          case BER_TYPE_CONTEXT | BER_TYPE_CONSTRUCTED | PDU_TYPE_CALLING_AP_TITLE:
+            std::string name = getMeterNameFromAPTitle(type);
+            meter->setName(name);
+            break;
         }
 
         ber_type_destroy(type);
@@ -339,9 +394,8 @@ Application::parseDataFrame(
     }
 
     if (infoFound && pwdFound) {
-      meter->params()["AARQ_FOUND"] = std::string("TRUE");
+      meter->params()["AARQ_FOUND"]   = std::string("TRUE");
       meter->params()["MAX_PDU_SIZE"] = std::to_string(maxSize);
-
       this->ui->pushCreds(
             dc,
             timeStamp,
@@ -413,26 +467,32 @@ Application::onDataReceived(
     const void *data,
     size_t size)
 {
+  const uint8_t *byteArr = static_cast<const uint8_t *>(data);
   QVector<uint8_t> bytes;
   PLCTool::Concentrator *dc =
       static_cast<PLCTool::Concentrator *>(meter->parent()->parent());
 
-  bytes.resize(size);
+  if (size <= 3)
+    return;
 
-  this->parseDataFrame(meter, timeStamp, downlink, data, size);
+  switch (byteArr[0]) {
+    case 0x90: // DLMS CL
+      this->parseDataFrame(meter, timeStamp, downlink, data, size);
 
-  std::copy(
-        static_cast<const uint8_t *>(data),
-        static_cast<const uint8_t *>(data) + size,
-        std::begin(bytes));
+      std::copy(byteArr + 3, (byteArr + size) - 3, std::back_inserter(bytes));
 
-  emit messageReceived(
-        QString::fromStdString(
-          PLCTool::PrimeAdapter::idToSna(dc->id())),
-        timeStamp,
-        meter->id(),
-        downlink,
-        bytes);
+      emit messageReceived(
+            QString::fromStdString(
+              PLCTool::PrimeAdapter::idToSna(dc->id())),
+            timeStamp,
+            meter->id(),
+            downlink,
+            bytes);
+      break;
+
+    default:
+      printf("Warning: unknown CL (0x%02x)\n", byteArr[0]);
+  }
 }
 
 void

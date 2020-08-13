@@ -22,7 +22,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   this->model = new TopologyModel(nullptr, this);
   this->ui->topologyView->setModel(this->model);
-
+  this->ui->topologyView->setSelectionBehavior(QAbstractItemView::SelectRows);
   this->connectAll();
 }
 

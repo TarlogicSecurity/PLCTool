@@ -2,6 +2,7 @@
 #include <Topology/Meter.h>
 #include <Topology/Switch.h>
 #include <Topology/Concentrator.h>
+#include <QColor>
 
 #include <PRIME/PrimeAdapter.h>
 
@@ -41,10 +42,19 @@ QVariant
 TopologyModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
   if (orientation == Qt::Orientation::Horizontal && role == Qt::DisplayRole) {
-    if (section == 0)
-      return QVariant(QString("Node"));
-    else
-      return QVariant(QString("Description"));
+    switch (section) {
+      case 0:
+        return QString("Node");
+        break;
+
+      case 1:
+        return QString("Name");
+        break;
+
+      case 2:
+        return QString("Credentials");
+        break;
+    }
   }
 
   return QVariant();
@@ -53,8 +63,13 @@ TopologyModel::headerData(int section, Qt::Orientation orientation, int role) co
 QModelIndex
 TopologyModel::index(int row, int column, const QModelIndex &parent) const
 {
+  QModelIndex index;
+
   const PLCTool::SubNet *net = nullptr;
 
+  if (!hasIndex(row, column, parent)) {
+    return QModelIndex();
+  }
   // Root element. Querying entry in subnet
   if (!parent.isValid()) {
     net = this->net;
@@ -70,30 +85,41 @@ TopologyModel::index(int row, int column, const QModelIndex &parent) const
 
   if (net == nullptr
         || row < 0
-        || static_cast<unsigned>(row) >= net->length())
+        || static_cast<unsigned>(row) >= net->length()) {
     return QModelIndex();
+  }
+  index =  createIndex(row, column, net->nodeAt(row));
 
-  return createIndex(row, column, net->nodeAt(row));
+  return index;
 }
 
 QModelIndex
 TopologyModel::parent(const QModelIndex &index) const
 {
+  QModelIndex newIndex;
+
+  if (!index.isValid()) {
+    return QModelIndex();
+  }
+
   PLCTool::Node *current = static_cast<PLCTool::Node *>(index.internalPointer());
 
-
-  if (current == nullptr)
+  if (current == nullptr) {
     return QModelIndex();
+  }
 
   PLCTool::SubNet *sn = current->parent();
 
-  if (sn == nullptr)
+  if (sn == nullptr) {
     return QModelIndex();
-
-  if (sn->parent() == nullptr)
+  }
+  if (sn->parent() == nullptr) {
     return QModelIndex();
+  }
 
-  return createIndex(sn->parent()->allocNdx(), index.column(), sn->parent());
+  newIndex = createIndex(sn->parent()->allocNdx(), 0, sn->parent());
+
+  return newIndex;
 }
 
 int
@@ -142,53 +168,71 @@ TopologyModel::fetchMore(const QModelIndex &)
 QVariant
 TopologyModel::data(const QModelIndex &index, int role) const
 {
-  if (role != Qt::DisplayRole)
+  if (!index.isValid())
     return QVariant();
 
-  if (!index.isValid()) {
-    return QVariant();
-  } else {
-    PLCTool::Node *current = static_cast<PLCTool::Node *>(index.internalPointer());
+  PLCTool::Node *current = static_cast<PLCTool::Node *>(index.internalPointer());
 
-    switch (current->type()) {
-      PLCTool::Meter *asMeter;
-      PLCTool::Switch *asSwitch;
-      PLCTool::Concentrator *asDc;
+  switch (role) {
+    case Qt::DisplayRole:
+      switch (current->type()) {
+        PLCTool::Meter *asMeter;
+        PLCTool::Switch *asSwitch;
+        PLCTool::Concentrator *asDc;
 
-      case PLCTool::NodeType::UNDEFINED:
-        return QVariant::fromValue(QString("UNDEFINED"));
-        break;
+        case PLCTool::NodeType::UNDEFINED:
+          return QVariant::fromValue(QString("UNDEFINED"));
+          break;
 
-      case PLCTool::NodeType::METER:
-        asMeter = static_cast<PLCTool::Meter *>(current);
-        if (index.column() == 0)
-          return QVariant::fromValue(
-                QString().sprintf("LNID: %06lx", asMeter->id()));
-        else if (index.column() == 1)
-          return QVariant::fromValue(QString("PRIME Meter"));
-        break;
+        case PLCTool::NodeType::METER:
+          asMeter = static_cast<PLCTool::Meter *>(current);
+          if (index.column() == 0)
+            return QVariant::fromValue(
+                  QString().sprintf("LNID: %06lx", asMeter->id()));
+          else if (index.column() == 1) {
+            if (asMeter->name().size() > 0)
+              return QString::fromStdString(asMeter->name());
+            else
+              return QVariant::fromValue(QString("(unnamed meter)"));
+          }
+          break;
 
-      case PLCTool::NodeType::SWITCH:
-        asSwitch = static_cast<PLCTool::Switch *>(current);
-        if (index.column() == 0)
-          return QVariant::fromValue(
-                QString().sprintf("LNID: %06lx", asSwitch->id()));
-        else if (index.column() == 1)
-          return QVariant::fromValue(QString("PRIME Switch"));
-        break;
+        case PLCTool::NodeType::SWITCH:
+          asSwitch = static_cast<PLCTool::Switch *>(current);
+          if (index.column() == 0)
+            return QVariant::fromValue(
+                  QString().sprintf("LNID: %06lx", asSwitch->id()));
+          else if (index.column() == 1)
+            return QVariant::fromValue(QString("PRIME Switch"));
+          break;
 
-      case PLCTool::NodeType::CONCENTRATOR:
-        asDc = static_cast<PLCTool::Concentrator *>(current);
-        if (index.column() == 0)
-          return QVariant::fromValue(QString().sprintf("SNA: %06lx", asDc->id()));
-        else if (index.column() == 1)
-          return QVariant::fromValue(
-                QString::fromStdString(
-                  PLCTool::PrimeAdapter::idToSna(
-                    asDc->id())));
-        break;
+        case PLCTool::NodeType::CONCENTRATOR:
+          asDc = static_cast<PLCTool::Concentrator *>(current);
+          if (index.column() == 0)
+            return QVariant::fromValue(QString().sprintf("SNA: %06lx", asDc->id()));
+          else if (index.column() == 1)
+            return QVariant::fromValue(
+                  QString::fromStdString(
+                    PLCTool::PrimeAdapter::idToSna(
+                      asDc->id())));
+          break;
+      }
+      break;
+
+    case Qt::ForegroundRole:
+    case Qt::BackgroundRole:
+      QColor fg = QColor::fromRgb(0, 0, 0);
+      QColor bg = QColor::fromRgb(0xff, 0xff, 0xff);
+
+      if (current->type() == PLCTool::NodeType::METER) {
+        PLCTool::Meter *asMeter = static_cast<PLCTool::Meter *>(current);
+        if (asMeter->params().contains("AARQ_FOUND"))
+          bg = QColor::fromRgb(0xff, 0xff, 0);
+
+      }
+
+      return role == Qt::ForegroundRole ? fg : bg;
     }
-  }
 
   return QVariant();
 }
