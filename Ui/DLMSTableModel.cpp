@@ -134,14 +134,8 @@ DLMSTableModel::data(const QModelIndex &index, int role) const
 void
 DLMSTableModel::refreshData(void)
 {
-  if (this->messageList->size() > this->lastSize) {
-    emit dataChanged(
-          createIndex(this->lastSize, 0),
-          createIndex(this->messageList->size() - 1, 7));
-  } else if (this->messageList->size() == 0
-             && this->messageList->size() != this->lastSize) {
+  if (this->messageList->size() != this->lastSize)
     emit layoutChanged();
-  }
 
   this->lastSize = this->messageList->size();
 }

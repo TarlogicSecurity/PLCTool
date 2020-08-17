@@ -1,6 +1,7 @@
 #include "MeterUI.h"
 #include "ui_MeterUI.h"
 #include "PRIME/PrimeAdapter.h"
+#include "XMLHighlighter.h"
 
 using namespace PLCTool;
 
@@ -42,6 +43,10 @@ MeterUI::MeterUI(QWidget *parent, MeterInfo *info) :
           "0x%llx",
           static_cast<quint64>(PRIME13_LNID(info->meter()->id()))));
 
+  this->highlighter = new XMLHighlighter(this->ui->xmlEdit->document());
+
+  this->savedHtml = this->ui->hexEdit->toHtml();
+  this->savedText = this->ui->xmlEdit->toPlainText();
 
   this->connectAll();
   this->connectMeterInfo();
@@ -56,6 +61,41 @@ MeterUI::~MeterUI()
 void
 MeterUI::connectAll(void)
 {
+  connect(
+        this->ui->frameView,
+        SIGNAL(activated(const QModelIndex &)),
+        this,
+        SLOT(onFrameCellActivated(const QModelIndex &)));
+
+  connect(
+        this->ui->frameView,
+        SIGNAL(clicked(const QModelIndex &)),
+        this,
+        SLOT(onFrameCellActivated(const QModelIndex &)));
+
+  connect(
+        this->ui->frameView->selectionModel(),
+        SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
+        this,
+        SLOT(onFrameCurrentChanged(QModelIndex,QModelIndex)));
+
+  connect(
+        this->ui->dlmsMessageView,
+        SIGNAL(activated(const QModelIndex &)),
+        this,
+        SLOT(onDlmsCellActivated(const QModelIndex &)));
+
+  connect(
+        this->ui->dlmsMessageView,
+        SIGNAL(clicked(const QModelIndex &)),
+        this,
+        SLOT(onDlmsCellActivated(const QModelIndex &)));
+
+  connect(
+        this->ui->dlmsMessageView->selectionModel(),
+        SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
+        this,
+        SLOT(onDlmsCurrentChanged(QModelIndex,QModelIndex)));
 
 }
 
@@ -117,3 +157,63 @@ MeterUI::onCreds(QString, QString)
 {
 
 }
+
+void
+MeterUI::onFrameCellActivated(const QModelIndex &index)
+{
+  Frame *frame = nullptr;
+  int row = index.row();
+
+  if (row >= 0 && row < this->frameProxy->rowCount()) {
+    QModelIndex trueIndex = this->frameProxy->mapToSource(index);
+
+    int ndx = this->frameModel->data(trueIndex, Qt::UserRole).value<int>();
+
+    if (ndx >= 0 && ndx < this->info->frameList()->count())
+      frame = &(*this->info->frameList())[ndx];
+  }
+
+  if (frame != nullptr) {
+    this->ui->hexEdit->setHtml(frame->toHtml());
+    this->ui->pktEdit->setText(frame->frame != nullptr
+          ? QString::fromStdString(frame->frame->toString())
+          : "");
+  } else {
+    this->ui->hexEdit->setHtml(this->savedHtml);
+    this->ui->pktEdit->setText("");
+  }
+}
+
+void
+MeterUI::onFrameCurrentChanged(QModelIndex curr, QModelIndex)
+{
+  onFrameCellActivated(curr);
+}
+
+void
+MeterUI::onDlmsCellActivated(QModelIndex const &index)
+{
+  DlmsMessage *msg = nullptr;
+  int row = index.row();
+
+  if (row >= 0 && row < this->dlmsProxy->rowCount()) {
+    QModelIndex trueIndex = this->dlmsProxy->mapToSource(index);
+    int ndx = this->dlmsModel->data(trueIndex, Qt::UserRole).value<int>();
+
+    if (ndx >= 0 && ndx < this->info->messageList()->count())
+      msg = &(*this->info->messageList())[ndx];
+  }
+
+  if (msg != nullptr) {
+    this->ui->xmlEdit->setText(msg->toText());
+  } else {
+    this->ui->xmlEdit->setText(this->savedText);
+  }
+}
+
+void
+MeterUI::onDlmsCurrentChanged(QModelIndex curr, QModelIndex)
+{
+  onDlmsCellActivated(curr);
+}
+
