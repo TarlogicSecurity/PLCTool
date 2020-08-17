@@ -134,14 +134,8 @@ FrameTableModel::data(const QModelIndex &index, int role) const
 void
 FrameTableModel::refreshData(void)
 {
-  if (this->frameList->size() > this->lastSize) {
-    emit dataChanged(
-          createIndex(this->lastSize, 0),
-          createIndex(this->frameList->size() - 1, 7));
-  } else if (this->frameList->size() == 0
-             && this->frameList->size() != this->lastSize) {
+  if (this->frameList->size() != this->lastSize)
     emit layoutChanged();
-  }
 
   this->lastSize = this->frameList->size();
 }

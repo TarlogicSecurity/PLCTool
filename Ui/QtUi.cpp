@@ -159,11 +159,18 @@ QtUi::openMeterInfoView(MeterInfo *info)
 
   if (this->mainWindow->findWindow(windowName) == nullptr) {
     MeterUI *ui = new MeterUI(nullptr, info);
-    (void) this->mainWindow->openWindow(
-          windowName,
-          QString::fromStdString(
-            "Meter information (" + info->meter()->name() + ")"),
-          ui);
+    QString title;
+
+    if (info->meter()->name().size() > 0)
+      title = QString::fromStdString(
+            "Meter information: " + info->meter()->name());
+    else
+      title = "Meter information: "
+          + QString().sprintf(
+            "%06llx",
+            static_cast<quint64>(info->meter()->id()));
+
+    (void) this->mainWindow->openWindow(windowName, title, ui);
     this->meterUiMap.insert(info->meter()->id(), ui);
   }
 }

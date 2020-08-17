@@ -512,7 +512,7 @@ Application::onDataReceived(
     case 0x90: // DLMS CL
       this->parseDataFrame(meter, timeStamp, downlink, data, size);
 
-      std::copy(byteArr + 3, (byteArr + size) - 3, std::back_inserter(bytes));
+      std::copy(byteArr + 3, byteArr + size, std::back_inserter(bytes));
 
       emit messageReceived(
             QString::fromStdString(
