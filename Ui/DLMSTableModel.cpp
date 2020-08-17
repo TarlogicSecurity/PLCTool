@@ -135,24 +135,12 @@ void
 DLMSTableModel::refreshData(void)
 {
   if (this->messageList->size() > this->lastSize) {
-    this->beginInsertRows(
-          QModelIndex(),
-          this->lastSize,
-          this->messageList->size() - 1);
-    this->endInsertRows();
     emit dataChanged(
           createIndex(this->lastSize, 0),
           createIndex(this->messageList->size() - 1, 7));
   } else if (this->messageList->size() == 0
              && this->messageList->size() != this->lastSize) {
-    this->beginRemoveRows(
-          QModelIndex(),
-          0,
-          this->lastSize - 1);
-    this->endRemoveRows();
-    emit dataChanged(
-          createIndex(0, 0),
-          createIndex(0, 0));
+    emit layoutChanged();
   }
 
   this->lastSize = this->messageList->size();

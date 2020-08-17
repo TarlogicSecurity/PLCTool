@@ -9,10 +9,14 @@
 #include "LoadingStatusDialog.h"
 #include "FrameLogUI.h"
 #include "DLMSLogUI.h"
+#include "MeterUI.h"
+#include <QMap>
+
 #include <QElapsedTimer>
 
 struct Frame;
 struct DlmsMessage;
+class MeterInfo;
 
 class QtUi : public QObject
 {
@@ -30,6 +34,7 @@ class QtUi : public QObject
   FrameLogUI *frameLogUi = nullptr;
   DLMSLogUI *dlmsLogUi = nullptr;
   QElapsedTimer refreshTimer;
+  QMap<PLCTool::NodeId, MeterUI *> meterUiMap;
 
   // UI state
   bool firstConnection = true;
@@ -55,6 +60,9 @@ public:
   void openDlmsLog(void);
   void openTranslator(void);
 
+  void openMeterInfoView(MeterInfo *);
+  void closeAllMeterInfo(void);
+
   void pushFrame(Frame const &);
   void pushDlmsMessage(DlmsMessage const &);
 
@@ -64,7 +72,7 @@ public:
       PLCTool::NodeId meter,
       QString password);
 
-  void refreshFrames(void);
+  void refreshViews(void);
 
   // Convenience getters
   QString modemPath(void) const;
@@ -72,6 +80,7 @@ public:
 
 signals:
   void openAdapter(void);
+  void openMeterInfo(PLCTool::Meter *);
   void openLogFile(QString);
   void closeAdapter(void);
 

@@ -53,6 +53,12 @@ QtUi::connectAll(void)
         SIGNAL(rejected()),
         this,
         SLOT(onRejectLoading()));
+
+  connect(
+        this->mainWindow,
+        SIGNAL(openMeterInfo(PLCTool::Meter*)),
+        this,
+        SIGNAL(openMeterInfo(PLCTool::Meter*)));
 }
 
 void
@@ -137,6 +143,32 @@ QtUi::notifyTopologyChange(void)
 }
 
 void
+QtUi::closeAllMeterInfo(void)
+{
+  for (auto p : this->meterUiMap) {
+    QMdiSubWindow *window = static_cast<QMdiSubWindow *>(p->parent());
+    window->close();
+    p->deleteLater();
+  }
+}
+
+void
+QtUi::openMeterInfoView(MeterInfo *info)
+{
+  QString windowName = "MeterInfo." + QString::number(info->meter()->id());
+
+  if (this->mainWindow->findWindow(windowName) == nullptr) {
+    MeterUI *ui = new MeterUI(nullptr, info);
+    (void) this->mainWindow->openWindow(
+          windowName,
+          QString::fromStdString(
+            "Meter information (" + info->meter()->name() + ")"),
+          ui);
+    this->meterUiMap.insert(info->meter()->id(), ui);
+  }
+}
+
+void
 QtUi::openFrameLog(void)
 {
   if (this->mainWindow->findWindow("FrameLog") == nullptr) {
@@ -211,13 +243,16 @@ QtUi::pushFrame(Frame const &frame)
 }
 
 void
-QtUi::refreshFrames(void)
+QtUi::refreshViews(void)
 {
   if (this->frameLogUi != nullptr)
     this->frameLogUi->refreshFrames();
 
   if (this->dlmsLogUi != nullptr)
     this->dlmsLogUi->refreshMessages();
+
+  for (auto p : this->meterUiMap)
+    p->refreshViews();
 }
 
 void

@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QMdiSubWindow>
+#include <Topology/Meter.h>
 #include "TopologyModel.h"
 #include <QHash>
 
@@ -54,6 +55,7 @@ public:
 
 public slots:
     void onCloseSubWindow(QString subWindow);
+    void onNodeActivated(QModelIndex);
 
 private:
     Ui::MainWindow *ui;
@@ -63,6 +65,7 @@ signals:
     void toggleStart(void);
     void openModemDialog(void);
     void closeSubWindow(QString);
+    void openMeterInfo(PLCTool::Meter *);
 };
 
 #endif // MAINWINDOW_H

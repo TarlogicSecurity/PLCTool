@@ -247,6 +247,12 @@ Application::connectUi(void)
         SIGNAL(openLogFile(QString)),
         this,
         SLOT(onOpenLogFile(QString)));
+
+  connect(
+        this->ui,
+        SIGNAL(openMeterInfo(PLCTool::Meter*)),
+        this,
+        SLOT(onOpenMeterInfo(PLCTool::Meter*)));
 }
 
 static std::string
@@ -296,6 +302,30 @@ getMeterNameFromAPTitle(const ber_type_t *type)
 
 done:
   return title;
+}
+
+void
+Application::clearMeterInfo(void)
+{
+  this->ui->closeAllMeterInfo();
+
+  for (auto p : this->meterInfo)
+    p->deleteLater();
+
+  this->meterInfo.clear();
+}
+
+MeterInfo *
+Application::assertMeterInfo(PLCTool::Meter *meter)
+{
+  MeterInfo *mInfo;
+
+  if (this->meterInfo.contains(meter->id()))
+    return this->meterInfo[meter->id()];
+
+  this->meterInfo.insert(meter->id(), mInfo = new MeterInfo(this, meter));
+
+  return mInfo;
 }
 
 void
@@ -416,14 +446,17 @@ fail:
 void
 Application::onOpenAdapter(void)
 {
-  if (this->openAdapter(this->ui->modemPath(), this->ui->modemBaud()))
+  if (this->openAdapter(this->ui->modemPath(), this->ui->modemBaud())) {
+    this->clearMeterInfo();
     this->ui->setAdapter(static_cast<PLCTool::Adapter *>(this->adapter));
+  }
 }
 
 void
 Application::onOpenLogFile(QString path)
 {
   if (this->loadLogFile(path)) {
+    this->clearMeterInfo();
     this->ui->setLoading(true);
     this->ui->setAdapter(static_cast<PLCTool::Adapter *>(this->adapter));
   }
@@ -508,8 +541,10 @@ void
 Application::onMeterFound(
     PLCTool::Concentrator *,
     QDateTime,
-    PLCTool::Meter *)
+    PLCTool::Meter *meter)
 {
+  this->assertMeterInfo(meter);
+
   this->ui->notifyTopologyChange();
 }
 
@@ -517,14 +552,14 @@ void
 Application::onAdapterClosed(void)
 {
   this->ui->setLoading(false);
-  this->ui->refreshFrames();
+  this->ui->refreshViews();
   this->onCloseAdapter();
 }
 
 void
 Application::onAdapterRefreshRequested(void)
 {
-  this->ui->refreshFrames();
+  this->ui->refreshViews();
 }
 
 void
@@ -536,11 +571,34 @@ Application::onAdapterStatusMessage(QString message)
 void
 Application::onProcessedFrame(Frame frame)
 {
+  if (frame.frame != nullptr
+      && frame.frame->PDU.macType == PLCTool::PrimeFrame::GENERIC) {
+    PLCTool::NodeId nid = PRIME13_SID_LNID_TO_NID(
+          frame.frame->PDU.PKT.SID,
+          frame.frame->PDU.PKT.LNID);
+    if (this->meterInfo.contains(nid)) {
+       MeterInfo *info = this->meterInfo[nid];
+       info->pushFrame(frame);
+    }
+  }
+
   this->ui->pushFrame(frame);
 }
 
 void
 Application::onProcessedDlmsMessage(DlmsMessage message)
 {
+  if (this->meterInfo.contains(message.nodeId)) {
+    MeterInfo *info = this->meterInfo[message.nodeId];
+    info->pushDlmsMessage(message);
+  }
+
   this->ui->pushDlmsMessage(message);
+}
+
+void
+Application::onOpenMeterInfo(PLCTool::Meter *meter)
+{
+  MeterInfo *info = this->assertMeterInfo(meter);
+  this->ui->openMeterInfoView(info);
 }

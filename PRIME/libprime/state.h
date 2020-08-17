@@ -27,6 +27,9 @@ typedef uint64_t prime13_mac_t;
 #define PRIME13_SID_LNID_TO_NID(sid, lnid) \
   ((sid) << 14) | ((lnid) & 0x3fff)
 
+#define PRIME13_SID(nid) (0xff & ((nid) >> 14))
+#define PRIME13_LNID(nid) (0x3fff & (nid))
+
 enum prime13_ctype {
   PRIME13_CTYPE_DAT = 0,
   PRIME13_CTYPE_REG = 1,
