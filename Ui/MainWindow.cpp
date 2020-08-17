@@ -46,6 +46,12 @@ MainWindow::connectAll(void)
         SIGNAL(triggered(bool)),
         this,
         SIGNAL(loadFile()));
+
+  connect(
+        this->ui->topologyView,
+        SIGNAL(activated(QModelIndex)),
+        this,
+        SLOT(onNodeActivated(QModelIndex)));
 }
 
 QSaneMdiSubWindow *
@@ -61,7 +67,6 @@ MainWindow::openWindow(
 
   subWindow = new QSaneMdiSubWindow(name);
   subWindow->setWidget(widget);
-  subWindow->setAttribute(Qt::WA_DeleteOnClose);
   subWindow->setWindowTitle(title);
   this->windowMap[name] = subWindow;
 
@@ -136,4 +141,13 @@ MainWindow::onCloseSubWindow(QString subWindow)
 {
   emit closeSubWindow(subWindow);
   this->windowMap[subWindow] = nullptr;
+}
+
+void
+MainWindow::onNodeActivated(QModelIndex index)
+{
+  PLCTool::Node *node = this->model->node(index);
+
+  if (node != nullptr && node->type() == PLCTool::METER)
+    emit openMeterInfo(static_cast<PLCTool::Meter *>(node));
 }

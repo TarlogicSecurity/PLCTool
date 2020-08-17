@@ -43,6 +43,9 @@ public:
   bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
   bool removeColumns(int column, int count, const QModelIndex &parent = QModelIndex()) override;
 
+  // Retrieve node from index
+  PLCTool::Node *node(QModelIndex const &) const;
+
   // Notifiers
   void notifyData(void);
   void notifyLayout(void);

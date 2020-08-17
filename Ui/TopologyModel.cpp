@@ -165,13 +165,19 @@ TopologyModel::fetchMore(const QModelIndex &)
   // FIXME: Implement me!
 }
 
+PLCTool::Node *
+TopologyModel::node(QModelIndex const &index) const
+{
+  if (!index.isValid())
+    return nullptr;
+
+  return static_cast<PLCTool::Node *>(index.internalPointer());
+}
+
 QVariant
 TopologyModel::data(const QModelIndex &index, int role) const
 {
-  if (!index.isValid())
-    return QVariant();
-
-  PLCTool::Node *current = static_cast<PLCTool::Node *>(index.internalPointer());
+  PLCTool::Node *current = this->node(index);
 
   switch (role) {
     case Qt::DisplayRole:

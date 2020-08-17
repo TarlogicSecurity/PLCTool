@@ -178,7 +178,8 @@ SOURCES += main.cpp\
     Ui/LoadingStatusDialog.cpp \
     Ui/DLMSTableModel.cpp \
     App/DLMSProcessor.cpp \
-    PRIMEProcessor.cpp
+    App/PRIMEProcessor.cpp \
+    App/MeterInfo.cpp
 
 HEADERS  += MainWindow.h \
     Topology/Adapter.h \
@@ -367,7 +368,8 @@ HEADERS  += MainWindow.h \
     Ui/LoadingStatusDialog.h \
     Ui/DLMSTableModel.h \
     App/DLMSProcessor.h \
-    App/PRIMEProcessor.h
+    App/PRIMEProcessor.h \
+    App/MeterInfo.h
 
 
 FORMS    += Forms/MainWindow.ui \

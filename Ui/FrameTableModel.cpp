@@ -135,24 +135,12 @@ void
 FrameTableModel::refreshData(void)
 {
   if (this->frameList->size() > this->lastSize) {
-    this->beginInsertRows(
-          QModelIndex(),
-          this->lastSize,
-          this->frameList->size() - 1);
-    this->endInsertRows();
     emit dataChanged(
           createIndex(this->lastSize, 0),
           createIndex(this->frameList->size() - 1, 7));
   } else if (this->frameList->size() == 0
              && this->frameList->size() != this->lastSize) {
-    this->beginRemoveRows(
-          QModelIndex(),
-          0,
-          this->lastSize - 1);
-    this->endRemoveRows();
-    emit dataChanged(
-          createIndex(0, 0),
-          createIndex(0, 0));
+    emit layoutChanged();
   }
 
   this->lastSize = this->frameList->size();

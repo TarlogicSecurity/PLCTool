@@ -8,9 +8,11 @@
 #include "Ui/QtUi.h"
 #include "PRIME/PrimeAdapter.h"
 #include "QVector"
+#include <QMap>
 
 #include "PRIMEProcessor.h"
 #include "DLMSProcessor.h"
+#include "MeterInfo.h"
 
 class Application : public QApplication
 {
@@ -19,6 +21,7 @@ class Application : public QApplication
   // Data model objects
   PLCTool::PrimeAdapter *adapter = nullptr;
   QVector<PLCTool::SubNet *> subNetHistory;
+  QMap<PLCTool::NodeId, MeterInfo*> meterInfo;
 
   QThread *primeProcThread = nullptr;
   QThread *dlmsProcThread = nullptr;
@@ -39,6 +42,9 @@ class Application : public QApplication
   void connectAdapter(void);
   void connectUi(void);
   void connectProcessors(void);
+
+  void clearMeterInfo(void);
+  MeterInfo *assertMeterInfo(PLCTool::Meter *);
 
 public:
   explicit Application(int &argc, char *argv[]);
@@ -92,7 +98,7 @@ public slots:
   void onOpenAdapter(void);
   void onOpenLogFile(QString);
   void onCloseAdapter(void);
-
+  void onOpenMeterInfo(PLCTool::Meter *meter);
   void onProcessedFrame(Frame);
   void onProcessedDlmsMessage(DlmsMessage);
 };
