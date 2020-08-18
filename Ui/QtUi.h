@@ -70,7 +70,8 @@ public:
       const PLCTool::Concentrator *dc,
       QDateTime,
       PLCTool::NodeId meter,
-      QString password);
+      QString password,
+      QString conformance);
 
   void refreshViews(void);
 

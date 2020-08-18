@@ -66,7 +66,6 @@ QtUi::breathe(void)
 {
   if (this->refreshTimer.elapsed() > 100) {
     QCoreApplication::processEvents();
-
     if (this->frameLogUi != nullptr)
       this->frameLogUi->refreshFrames();
 
@@ -296,7 +295,8 @@ QtUi::pushCreds(
     const PLCTool::Concentrator *dc,
     QDateTime timeStamp,
     PLCTool::NodeId meter,
-    QString password)
+    QString password,
+    QString conformance)
 {
   QSaneMdiSubWindow *sw = this->mainWindow->findWindow("CredsLog");
 

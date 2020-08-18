@@ -38,7 +38,15 @@ MeterInfo::pushDlmsMessage(DlmsMessage const &message)
 }
 
 void
-MeterInfo::pushCreds(QString password, QString ctx)
+MeterInfo::pushCreds(QDateTime timeStamp, QString password, QString ctx)
 {
-  emit credentialsFound(password, ctx);
+  CredInfo info;
+
+  info.timeStamp = timeStamp;
+  info.password  = password;
+  info.context   = ctx;
+
+  this->creds.append(info);
+
+  emit credentialsFound(timeStamp, password, ctx);
 }

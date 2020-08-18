@@ -319,7 +319,18 @@ p, li { white-space: pre-wrap; }
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
        <item row="0" column="0">
-        <widget class="QTableWidget" name="tableWidget">
+        <widget class="QTableWidget" name="credTableWidget">
+         <property name="font">
+          <font>
+           <family>Cascadia Code PL</family>
+          </font>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SingleSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
          <attribute name="horizontalHeaderStretchLastSection">
           <bool>true</bool>
          </attribute>
@@ -329,16 +340,6 @@ p, li { white-space: pre-wrap; }
          <attribute name="verticalHeaderDefaultSectionSize">
           <number>16</number>
          </attribute>
-         <row>
-          <property name="text">
-           <string>1</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>2</string>
-          </property>
-         </row>
          <column>
           <property name="text">
            <string>Timestamp</string>
@@ -359,46 +360,6 @@ p, li { white-space: pre-wrap; }
            <string>Contexts</string>
           </property>
          </column>
-         <item row="0" column="0">
-          <property name="text">
-           <string>00:00:00</string>
-          </property>
-         </item>
-         <item row="0" column="1">
-          <property name="text">
-           <string>LLS</string>
-          </property>
-         </item>
-         <item row="0" column="2">
-          <property name="text">
-           <string>00000001</string>
-          </property>
-         </item>
-         <item row="0" column="3">
-          <property name="text">
-           <string>Get</string>
-          </property>
-         </item>
-         <item row="1" column="0">
-          <property name="text">
-           <string>00:00:00</string>
-          </property>
-         </item>
-         <item row="1" column="1">
-          <property name="text">
-           <string>LLS</string>
-          </property>
-         </item>
-         <item row="1" column="2">
-          <property name="text">
-           <string>00000002</string>
-          </property>
-         </item>
-         <item row="1" column="3">
-          <property name="text">
-           <string>Get, Set, Action</string>
-          </property>
-         </item>
         </widget>
        </item>
       </layout>
