@@ -52,6 +52,9 @@ FrameTableModel::data(const QModelIndex &index, int role) const
   int column = index.column();
   Frame *entry = nullptr;
 
+  if (!index.isValid())
+    return QVariant();
+
   if (this->frameList == nullptr)
     return QVariant();
 

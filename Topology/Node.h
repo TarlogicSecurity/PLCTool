@@ -32,6 +32,7 @@ namespace PLCTool {
     NodeId niId;
     int iAllocNdx;
     std::string nodeName;
+    std::string mMacAddr;
     SubNet *snParent;
     StringParams sParams;
     friend class SubNet;
@@ -55,6 +56,7 @@ namespace PLCTool {
 
     // Setters
     void setName(std::string const &);
+    void setMacAddr(std::string const &);
 
     // String Parameters visibility
     StringParams &
@@ -67,6 +69,12 @@ namespace PLCTool {
     isHub(void) const
     {
       return this->eType == SWITCH || this->eType == CONCENTRATOR;
+    }
+
+    std::string
+    macAddr(void) const
+    {
+      return this->mMacAddr;
     }
   };
 }
