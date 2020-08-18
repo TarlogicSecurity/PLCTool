@@ -55,6 +55,8 @@ void
 DLMSLogUI::refreshMessages(void)
 {
   int rows = this->messageList.size();
+  bool oldAdjusting = this->adjusting;
+  this->adjusting = true;
 
   this->model->refreshData();
 
@@ -70,6 +72,9 @@ DLMSLogUI::refreshMessages(void)
 
   for (int i = 0; i < 8; ++i)
     this->ui->messageView->resizeColumnToContents(i);
+
+  this->adjusting = oldAdjusting;
+
 }
 
 int
@@ -195,19 +200,21 @@ DLMSLogUI::onCellActivated(QModelIndex const &index)
   DlmsMessage *msg = nullptr;
   int row = index.row();
 
-  if (row >= 0 && row < this->proxy->rowCount()) {
-    QModelIndex trueIndex = this->proxy->mapToSource(index);
-    int ndx = this->model->data(trueIndex, Qt::UserRole).value<int>();
+  if (!this->adjusting) {
+    if (row >= 0 && row < this->proxy->rowCount()) {
+      QModelIndex trueIndex = this->proxy->mapToSource(index);
+      int ndx = this->model->data(trueIndex, Qt::UserRole).value<int>();
 
-    if (ndx >= 0 && ndx < this->messageList.count())
-      msg = &this->messageList[ndx];
-  }
+      if (ndx >= 0 && ndx < this->messageList.count())
+        msg = &this->messageList[ndx];
+    }
 
-  if (msg != nullptr) {
-    emit messageSelected(*msg);
-    this->ui->xmlEdit->setText(msg->toText());
-  } else {
-    this->ui->xmlEdit->setText(this->savedText);
+    if (msg != nullptr) {
+      emit messageSelected(*msg);
+      this->ui->xmlEdit->setText(msg->toText());
+    } else {
+      this->ui->xmlEdit->setText(this->savedText);
+    }
   }
 }
 
@@ -263,8 +270,9 @@ DLMSLogUI::onBottom(void)
 void
 DLMSLogUI::onGotoLine(void)
 {
-  this->ui->messageView->scrollTo(
-        this->ui->messageView->model()->index(
-          this->ui->lineSpin->value() - 1,
-          0));
+  if (!this->adjusting)
+    this->ui->messageView->scrollTo(
+          this->ui->messageView->model()->index(
+            this->ui->lineSpin->value() - 1,
+            0));
 }

@@ -27,6 +27,7 @@ class DLMSLogUI : public QWidget
   QString savedText;
 
   XMLHighlighter *highlighter;
+  bool adjusting = false;
 
   void saveLog(QString path);
 

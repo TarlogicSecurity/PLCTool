@@ -48,6 +48,9 @@ MeterUI::MeterUI(QWidget *parent, MeterInfo *info) :
   this->savedHtml = this->ui->hexEdit->toHtml();
   this->savedText = this->ui->xmlEdit->toPlainText();
 
+  for (auto p : *(info->credList()))
+    this->onCredentialsFound(p.timeStamp, p.password, p.context);
+
   this->connectAll();
   this->connectMeterInfo();
   this->refreshViews();
@@ -113,6 +116,12 @@ MeterUI::connectMeterInfo(void)
         SIGNAL(messageReceived(DlmsMessage)),
         this,
         SLOT(onDlmsMessage(DlmsMessage)));
+
+  connect(
+        this->info,
+        SIGNAL(credentialsFound(QDateTime,QString,QString)),
+        this,
+        SLOT(onCredentialsFound(QDateTime,QString,QString)));
 }
 
 void
@@ -219,3 +228,34 @@ MeterUI::onDlmsCurrentChanged(QModelIndex curr, QModelIndex)
   onDlmsCellActivated(curr);
 }
 
+void
+MeterUI::onCredentialsFound(QDateTime timeStamp, QString passwd, QString ctx)
+{
+  QTableWidgetItem *timeItem = new QTableWidgetItem(timeStamp.toString());
+  QTableWidgetItem *typeItem = new QTableWidgetItem(QString("LLS"));
+  QTableWidgetItem *pwdItem = new QTableWidgetItem(passwd);
+  QTableWidgetItem *ctxItem = new QTableWidgetItem(ctx);
+
+  int rows = this->ui->credTableWidget->rowCount();
+
+  this->ui->credTableWidget->insertRow(rows);
+
+  this->ui->credTableWidget->setItem(
+        rows,
+        0,
+        timeItem);
+  this->ui->credTableWidget->setItem(
+        timeItem->row(),
+        1,
+        typeItem);
+  this->ui->credTableWidget->setItem(
+        timeItem->row(),
+        2,
+        pwdItem);
+  this->ui->credTableWidget->setItem(
+        timeItem->row(),
+        3,
+        ctxItem);
+
+  this->ui->credTableWidget->resizeColumnsToContents();
+}

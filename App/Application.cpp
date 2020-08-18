@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <ber/ber.h>
 #include <dlms/dlms.h>
+#include <gurux/include/TranslatorSimpleTags.h>
 
 using namespace PLCTool;
 
@@ -337,15 +338,17 @@ Application::parseDataFrame(
     size_t size)
 {
   const uint8_t *asBytes = static_cast<const uint8_t *>(data);
+  MeterInfo *info = this->assertMeterInfo(meter);
   uint8_t cmd;
   uint8_t len;
   ber_stream_t *stream = nullptr;
   ber_type_t *type = nullptr;
-  uint32_t conformance;
+  unsigned int conformance = 0;
   uint16_t maxSize = 0;
   bool pwdFound = false;
   bool infoFound = false;
   std::string password;
+  std::string conformanceDesc;
   PLCTool::Concentrator *dc =
       static_cast<PLCTool::Concentrator *>(meter->parent()->parent());
   const uint8_t *p = nullptr;
@@ -393,16 +396,19 @@ Application::parseDataFrame(
               if ((p[0] == 0x5f && p[1] == 0x1f)
                   || (p[1] == 0x5f && p[2] != 0x1f)) {
                 if (p[2] == 4) {
-                  memcpy(
-                      static_cast<void *>(&conformance),
-                      static_cast<const void *>(p + 3),
-                      static_cast<unsigned long>(sizeof(uint32_t)));
+                  uint8_t *asBytes = reinterpret_cast<uint8_t *>(&conformance);
+
+                  conformance = 0;
+
+                  asBytes[0] = GXHelpers::SwapBits(p[4]);
+                  asBytes[1] = GXHelpers::SwapBits(p[5]);
+                  asBytes[2] = GXHelpers::SwapBits(p[6]);
+
                   memcpy(
                       static_cast<void *>(&maxSize),
                       static_cast<const void *>(p + 7),
                       static_cast<unsigned long>(sizeof(uint16_t)));
 
-                  conformance = ntohl(conformance);
                   maxSize     = ntohs(maxSize);
 
                   infoFound = true;
@@ -424,13 +430,30 @@ Application::parseDataFrame(
     }
 
     if (infoFound && pwdFound) {
+      std::string desc;
       meter->params()["AARQ_FOUND"]   = std::string("TRUE");
       meter->params()["MAX_PDU_SIZE"] = std::to_string(maxSize);
+
+      for (int i = 0; i < 24; ++i)
+        if (conformance & (1 << i))
+            if (CTranslatorSimpleTags::ConformanceToString(
+                  static_cast<DLMS_CONFORMANCE>(1 << i),
+                  desc) == 0)
+              conformanceDesc += desc + ",";
+      if (conformanceDesc.size() > 0)
+        conformanceDesc.resize(conformanceDesc.size() - 1);
+
+      info->pushCreds(
+            timeStamp,
+            QString::fromStdString(password),
+            QString::fromStdString(conformanceDesc));
+
       this->ui->pushCreds(
             dc,
             timeStamp,
             meter->id(),
-            QString::fromStdString(password));
+            QString::fromStdString(password),
+            QString::fromStdString(conformanceDesc));
     }
   }
 

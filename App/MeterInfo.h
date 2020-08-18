@@ -7,6 +7,12 @@
 #include "DLMSProcessor.h"
 #include <QVector>
 
+struct CredInfo {
+  QDateTime timeStamp;
+  QString password;
+  QString context;
+};
+
 class MeterInfo : public QObject
 {
   Q_OBJECT
@@ -18,13 +24,20 @@ class MeterInfo : public QObject
   QString mMac = "N/A";
   QVector<Frame> frames;
   QVector<DlmsMessage> messages;
+  QVector<CredInfo> creds;
 
 public:
   explicit MeterInfo(QObject *parent, PLCTool::Meter *meter);
 
   void pushFrame(Frame const &);
   void pushDlmsMessage(DlmsMessage const &);
-  void pushCreds(QString password, QString ctx);
+  void pushCreds(QDateTime timeStamp, QString password, QString ctx);
+
+  inline QVector<CredInfo> *
+  credList(void)
+  {
+    return &this->creds;
+  }
 
   inline QVector<Frame> *
   frameList(void)
@@ -53,7 +66,7 @@ public:
 signals:
   void messageReceived(DlmsMessage);
   void frameReceived(Frame);
-  void credentialsFound(QString, QString);
+  void credentialsFound(QDateTime, QString, QString);
 
 public slots:
 };

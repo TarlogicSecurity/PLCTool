@@ -52,6 +52,8 @@ public slots:
   void onDlmsCellActivated(const QModelIndex &index);
   void onDlmsCurrentChanged(QModelIndex, QModelIndex);
 
+  void onCredentialsFound(QDateTime, QString, QString);
+
 private:
     Ui::MeterUI *ui;
 };

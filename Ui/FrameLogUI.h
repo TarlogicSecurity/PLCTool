@@ -31,6 +31,7 @@ class FrameLogUI : public QWidget
   void saveLog(QString path);
 
   void connectAll(void);
+  bool adjusting = false;
 
 public:
   static void registerTypes(void);

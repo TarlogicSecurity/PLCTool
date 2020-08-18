@@ -23,7 +23,7 @@ FrameLogUI::FrameLogUI(QWidget *parent) :
   this->proxy = new QSortFilterProxyModel(this);
 
   this->proxy->setSourceModel(this->model);
-  this->ui->frameView->setModel(this->proxy);
+  this->ui->frameView->setModel(this->model);
   this->ui->frameView->setSortingEnabled(true);
   this->proxy->sort(-1);
   this->connectAll();
@@ -141,6 +141,8 @@ void
 FrameLogUI::refreshFrames(void)
 {
   int rows = this->frameList.size();
+  bool oldAdjusting = this->adjusting;
+  this->adjusting = true;
 
   this->model->refreshData();
 
@@ -156,6 +158,8 @@ FrameLogUI::refreshFrames(void)
 
   for (int i = 0; i < 8; ++i)
     this->ui->frameView->resizeColumnToContents(i);
+
+  this->adjusting = oldAdjusting;
 }
 
 void
@@ -190,24 +194,26 @@ FrameLogUI::onCellActivated(const QModelIndex &index)
   Frame *frame = nullptr;
   int row = index.row();
 
-  if (row >= 0 && row < this->proxy->rowCount()) {
-    QModelIndex trueIndex = this->proxy->mapToSource(index);
+  if (!this->adjusting) {
+    if (row >= 0 && row < this->proxy->rowCount()) {
+      QModelIndex trueIndex = this->proxy->mapToSource(index);
 
-    int ndx = this->model->data(trueIndex, Qt::UserRole).value<int>();
+      int ndx = this->model->data(trueIndex, Qt::UserRole).value<int>();
 
-    if (ndx >= 0 && ndx < this->frameList.count())
-      frame = &this->frameList[ndx];
-  }
+      if (ndx >= 0 && ndx < this->frameList.count())
+        frame = &this->frameList[ndx];
+    }
 
-  if (frame != nullptr) {
-    emit frameSelected(*frame);
-    this->ui->hexEdit->setHtml(frame->toHtml());
-    this->ui->pktEdit->setText(frame->frame != nullptr
-          ? QString::fromStdString(frame->frame->toString())
-          : "");
-  } else {
-    this->ui->hexEdit->setHtml(this->savedHtml);
-    this->ui->pktEdit->setText("");
+    if (frame != nullptr) {
+      emit frameSelected(*frame);
+      this->ui->hexEdit->setHtml(frame->toHtml());
+      this->ui->pktEdit->setText(frame->frame != nullptr
+            ? QString::fromStdString(frame->frame->toString())
+            : "");
+    } else {
+      this->ui->hexEdit->setHtml(this->savedHtml);
+      this->ui->pktEdit->setText("");
+    }
   }
 }
 
@@ -264,8 +270,9 @@ FrameLogUI::onBottom(void)
 void
 FrameLogUI::onGotoLine(void)
 {
-  this->ui->frameView->scrollTo(
-        this->ui->frameView->model()->index(
-          this->ui->lineSpin->value() - 1,
-          0));
+  if (!this->adjusting)
+    this->ui->frameView->scrollTo(
+          this->ui->frameView->model()->index(
+            this->ui->lineSpin->value() - 1,
+            0));
 }
