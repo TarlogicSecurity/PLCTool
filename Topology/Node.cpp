@@ -67,6 +67,12 @@ Node::setName(std::string const &name)
 }
 
 void
+Node::setMacAddr(std::string const &addr)
+{
+  this->mMacAddr = addr;
+}
+
+void
 Node::setAllocNdx(int ndx)
 {
   this->iAllocNdx = ndx;

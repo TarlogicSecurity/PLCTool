@@ -129,6 +129,19 @@ QtUi::setAdapter(PLCTool::Adapter *adapter)
       this->frameLogUi->clear();
     if (this->dlmsLogUi != nullptr)
       this->dlmsLogUi->clear();
+
+    for (auto p : this->meterUiMap.keys()) {
+      QString windowName = "MeterInfo." + QString::number(p);
+      QSaneMdiSubWindow *win = this->mainWindow->findWindow(windowName);
+      if (win != nullptr)
+        win->close();
+
+      if (this->meterUiMap.contains(p)) {
+        this->meterUiMap[p]->deleteLater();
+        this->meterUiMap.remove(p);
+      }
+    }
+
     const PLCTool::SubNet &sn = adapter->nodes();
     this->mainWindow->setSubNet(&sn);
   } else {

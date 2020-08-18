@@ -15,6 +15,7 @@ class MeterInfo : public QObject
 
   QDateTime lastActivity;
 
+  QString mMac = "N/A";
   QVector<Frame> frames;
   QVector<DlmsMessage> messages;
 
@@ -41,6 +42,12 @@ public:
   meter(void) const
   {
     return this->mMeter;
+  }
+
+  QString
+  mac(void) const
+  {
+    return this->mMac;
   }
 
 signals:

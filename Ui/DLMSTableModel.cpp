@@ -44,6 +44,9 @@ DLMSTableModel::data(const QModelIndex &index, int role) const
   int column = index.column();
   DlmsMessage *entry = nullptr;
 
+  if (!index.isValid())
+    return QVariant();
+
   if (this->messageList == nullptr)
     return QVariant();
 

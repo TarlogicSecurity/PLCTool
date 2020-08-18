@@ -14,94 +14,14 @@
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="4" column="0">
-    <widget class="QLabel" name="label_4">
-     <property name="text">
-      <string>Node Id</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="2">
-    <widget class="QLabel" name="nodeIdLabel">
-     <property name="font">
-      <font>
-       <family>Cascadia Code PL</family>
-      </font>
-     </property>
-     <property name="text">
-      <string>N/A</string>
-     </property>
-     <property name="textInteractionFlags">
-      <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="3">
-    <widget class="QLabel" name="label_15">
-     <property name="text">
-      <string>Role</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="2">
-    <widget class="QLabel" name="lastActivityLabel">
-     <property name="text">
-      <string>N/A</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="2">
-    <widget class="QLabel" name="lnidLabel">
-     <property name="font">
-      <font>
-       <family>Cascadia Code PL</family>
-      </font>
-     </property>
-     <property name="text">
-      <string>N/A</string>
-     </property>
-     <property name="textInteractionFlags">
-      <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="3">
+   <item row="1" column="4">
     <widget class="QLabel" name="label_6">
      <property name="text">
       <string>Name</string>
      </property>
     </widget>
    </item>
-   <item row="4" column="4">
-    <widget class="QLabel" name="roleLabel">
-     <property name="text">
-      <string>N/A</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="3">
-    <widget class="QLabel" name="xxx">
-     <property name="text">
-      <string>SID</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="2">
-    <widget class="QLabel" name="snLabel">
-     <property name="font">
-      <font>
-       <family>Cascadia Code PL</family>
-      </font>
-     </property>
-     <property name="text">
-      <string>N/A</string>
-     </property>
-     <property name="textInteractionFlags">
-      <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="4">
+   <item row="0" column="5">
     <widget class="QLabel" name="macLabel">
      <property name="font">
       <font>
@@ -123,36 +43,21 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="3">
+   <item row="0" column="4">
     <widget class="QLabel" name="label_5">
      <property name="text">
       <string>MAC </string>
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="label_3">
-     <property name="text">
-      <string>LNID</string>
+   <item row="0" column="2" rowspan="7">
+    <widget class="Line" name="line_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
      </property>
     </widget>
    </item>
-   <item row="3" column="4">
-    <widget class="QLabel" name="sidLabel">
-     <property name="font">
-      <font>
-       <family>Cascadia Code PL</family>
-      </font>
-     </property>
-     <property name="text">
-      <string>N/A</string>
-     </property>
-     <property name="textInteractionFlags">
-      <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="4">
+   <item row="1" column="5">
     <widget class="QLabel" name="nameLabel">
      <property name="font">
       <font>
@@ -174,7 +79,37 @@
      </property>
     </widget>
    </item>
-   <item row="8" column="0" colspan="6">
+   <item row="2" column="1">
+    <widget class="QLabel" name="lnidLabel">
+     <property name="font">
+      <font>
+       <family>Cascadia Code PL</family>
+      </font>
+     </property>
+     <property name="text">
+      <string>N/A</string>
+     </property>
+     <property name="textInteractionFlags">
+      <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QLabel" name="snLabel">
+     <property name="font">
+      <font>
+       <family>Cascadia Code PL</family>
+      </font>
+     </property>
+     <property name="text">
+      <string>N/A</string>
+     </property>
+     <property name="textInteractionFlags">
+      <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+     </property>
+    </widget>
+   </item>
+   <item row="10" column="0" colspan="7">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
       <number>1</number>
@@ -619,7 +554,79 @@ p, li { white-space: pre-wrap; }
      </widget>
     </widget>
    </item>
-   <item row="0" column="5">
+   <item row="2" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>LNID</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QLabel" name="lastActivityLabel">
+     <property name="text">
+      <string>N/A</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLabel" name="nodeIdLabel">
+     <property name="font">
+      <font>
+       <family>Cascadia Code PL</family>
+      </font>
+     </property>
+     <property name="text">
+      <string>N/A</string>
+     </property>
+     <property name="textInteractionFlags">
+      <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_4">
+     <property name="text">
+      <string>Node Id</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="4">
+    <widget class="QLabel" name="xxx">
+     <property name="text">
+      <string>SID</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="5">
+    <widget class="QLabel" name="sidLabel">
+     <property name="font">
+      <font>
+       <family>Cascadia Code PL</family>
+      </font>
+     </property>
+     <property name="text">
+      <string>N/A</string>
+     </property>
+     <property name="textInteractionFlags">
+      <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="4">
+    <widget class="QLabel" name="label_15">
+     <property name="text">
+      <string>Role</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="5">
+    <widget class="QLabel" name="roleLabel">
+     <property name="text">
+      <string>N/A</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="6" rowspan="4">
     <spacer name="horizontalSpacer">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -631,13 +638,6 @@ p, li { white-space: pre-wrap; }
       </size>
      </property>
     </spacer>
-   </item>
-   <item row="0" column="1" rowspan="5">
-    <widget class="Line" name="line_2">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-    </widget>
    </item>
   </layout>
  </widget>

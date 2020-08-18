@@ -138,6 +138,8 @@ MeterUI::refreshViews(void)
   if (this->info->meter()->name().size() > 0)
     this->ui->nameLabel->setText(
         QString::fromStdString(this->info->meter()->name()));
+
+  this->ui->macLabel->setText(this->info->mac());
 }
 
 void
