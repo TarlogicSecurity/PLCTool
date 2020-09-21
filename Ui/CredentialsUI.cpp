@@ -43,7 +43,8 @@ CredentialsUI::connectAll(void)
 void
 CredentialsUI::clear(void)
 {
-  this->credList.clear();
+  this->pendingList.clear();
+  this->model->clearData();
   this->refreshCredentials();
 }
 
@@ -143,7 +144,7 @@ CredentialsUI::~CredentialsUI()
 void
 CredentialsUI::onClear(bool)
 {
-
+  this->clear();
 }
 
 void

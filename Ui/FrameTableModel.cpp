@@ -135,6 +135,16 @@ FrameTableModel::data(const QModelIndex &index, int role) const
 }
 
 void
+FrameTableModel::clearData(void)
+{
+  if (this->frameList->size() > 0) {
+    beginRemoveRows(QModelIndex(), 0, this->frameList->size() - 1);
+    this->frameList->clear();
+    endRemoveRows();
+  }
+}
+
+void
 FrameTableModel::appendData(QVector<Frame> const &newData)
 {
   if (newData.size() > 0) {
