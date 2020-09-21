@@ -109,6 +109,7 @@ CredInfoTableModel::data(const QModelIndex &index, int role) const
         || entry->contexts.contains("BlockTransferWithAction")) {
       return QColor::fromRgb(0xff, 0x7f, 0x7f);
     } else if (entry->contexts.contains("BlockTransferWithSetOrWrite")
+        || entry->contexts.contains("Set")
         || entry->contexts.contains("Write")
         || entry->contexts.contains("Attribute0SupportedWithSet")
         || entry->contexts.contains("Unconfirmed-write")) {
@@ -121,6 +122,16 @@ CredInfoTableModel::data(const QModelIndex &index, int role) const
   }
 
   return QVariant();
+}
+
+void
+CredInfoTableModel::clearData(void)
+{
+  if (this->credInfoList->size() > 0) {
+    beginRemoveRows(QModelIndex(), 0, this->credInfoList->size() - 1);
+    this->credInfoList->clear();
+    endRemoveRows();
+  }
 }
 
 void

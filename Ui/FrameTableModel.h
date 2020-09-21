@@ -24,6 +24,7 @@ public:
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
   void appendData(QVector<Frame> const &);
+  void clearData(void);
 
   static void registerTypes(void);
 };

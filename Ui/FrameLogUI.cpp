@@ -261,7 +261,8 @@ FrameLogUI::onSaveAs(bool)
 void
 FrameLogUI::onClear(bool)
 {
-  this->frameList.clear();
+  this->pendingList.clear();
+  this->model->clearData();
   this->refreshFrames();
   this->ui->hexEdit->setHtml(this->savedHtml);
   this->ui->pktEdit->setText("");

@@ -269,7 +269,8 @@ DLMSLogUI::onSaveAs(bool)
 void
 DLMSLogUI::onClear(bool)
 {
-  this->messageList.clear();
+  this->pendingList.clear();
+  this->model->clearData();
   this->refreshMessages();
   this->ui->xmlEdit->setText("");
   this->ui->lineSpin->setMinimum(0);

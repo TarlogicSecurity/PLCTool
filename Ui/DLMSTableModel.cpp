@@ -134,6 +134,15 @@ DLMSTableModel::data(const QModelIndex &index, int role) const
   return QVariant();
 }
 
+void
+DLMSTableModel::clearData(void)
+{
+  if (this->messageList->size() > 0) {
+    beginRemoveRows(QModelIndex(), 0, this->messageList->size() - 1);
+    this->messageList->clear();
+    endRemoveRows();
+  }
+}
 
 void
 DLMSTableModel::appendData(QVector<DlmsMessage> const &newData)
