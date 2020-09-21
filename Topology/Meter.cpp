@@ -11,12 +11,24 @@
 
 using namespace PLCTool;
 
-Meter::Meter() : Node(nullptr, METER, 0)
+Meter::Meter() : Switch(nullptr, 0)
 {
-
+  this->demote();
 }
 
-Meter::Meter(SubNet *subnet, NodeId id) : Node(subnet, METER, id)
+Meter::Meter(SubNet *subnet, NodeId id) : Switch(subnet, id)
 {
+  this->demote();
+}
 
+void
+Meter::promote(void)
+{
+  this->eType = SWITCH;
+}
+
+void
+Meter::demote(void)
+{
+  this->eType = METER;
 }

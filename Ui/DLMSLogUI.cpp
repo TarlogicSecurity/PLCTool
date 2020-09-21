@@ -48,33 +48,43 @@ DLMSLogUI::saveLog(QString path)
 void
 DLMSLogUI::saveMessage(const DlmsMessage &msg)
 {
-  this->messageList.append(msg);
+  this->pendingList.append(msg);
 }
 
 void
 DLMSLogUI::refreshMessages(void)
 {
-  int rows = this->messageList.size();
-  bool oldAdjusting = this->adjusting;
-  this->adjusting = true;
+  if (this->pendingList.size() > 0) {
+    int rows;
+    bool firstIter = this->messageList.size() == 0;
+    bool oldAdjusting = this->adjusting;
+    this->adjusting = true;
 
-  this->model->refreshData();
+    if (this->sortingEnabled)
+      this->ui->messageView->setModel(this->model);
 
-  this->ui->lineSpin->setMinimum(1);
-  this->ui->lineSpin->setMaximum(rows);
-  this->ui->lineSpin->setEnabled(true);
-  this->ui->gotoButton->setEnabled(true);
-  this->ui->topButton->setEnabled(true);
-  this->ui->bottomButton->setEnabled(true);
+    this->model->appendData(this->pendingList);
+    this->pendingList.clear();
 
-  if (this->ui->autoScrollButton->isChecked())
-    this->ui->messageView->scrollToBottom();
+    rows = this->messageList.size();
+    if (this->sortingEnabled)
+      this->ui->messageView->setModel(this->proxy);
 
-  for (int i = 0; i < 8; ++i)
-    this->ui->messageView->resizeColumnToContents(i);
+    this->ui->lineSpin->setMinimum(1);
+    this->ui->lineSpin->setMaximum(rows);
+    this->ui->lineSpin->setEnabled(true);
+    this->ui->gotoButton->setEnabled(true);
+    this->ui->topButton->setEnabled(true);
+    this->ui->bottomButton->setEnabled(true);
 
-  this->adjusting = oldAdjusting;
+    if (this->ui->autoScrollButton->isChecked())
+      this->ui->messageView->scrollToBottom();
 
+    if (firstIter)
+      this->ui->messageView->resizeColumnsToContents();
+
+    this->adjusting = oldAdjusting;
+  }
 }
 
 int
@@ -167,6 +177,18 @@ DLMSLogUI::clear(void)
   this->onClear(false);
 }
 
+void
+DLMSLogUI::setSortingEnabled(bool enabled)
+{
+  this->sortingEnabled = enabled;
+  this->ui->messageView->setModel(
+        enabled
+        ? static_cast<QAbstractItemModel *>(this->proxy)
+        : static_cast<QAbstractItemModel *>(this->model));
+  this->ui->messageView->setSortingEnabled(enabled);
+}
+
+
 DLMSLogUI::DLMSLogUI(QWidget *parent) :
   QWidget(parent),
   ui(new Ui::DLMSLogUI)
@@ -178,8 +200,8 @@ DLMSLogUI::DLMSLogUI(QWidget *parent) :
 
   this->proxy->setSourceModel(this->model);
   this->ui->messageView->setModel(this->proxy);
-  this->ui->messageView->setSortingEnabled(true);
-  this->proxy->sort(-1);
+  this->setSortingEnabled(false);
+  this->proxy->sort(1);
 
   this->connectAll();
 
@@ -200,9 +222,12 @@ DLMSLogUI::onCellActivated(QModelIndex const &index)
   DlmsMessage *msg = nullptr;
   int row = index.row();
 
-  if (!this->adjusting) {
-    if (row >= 0 && row < this->proxy->rowCount()) {
-      QModelIndex trueIndex = this->proxy->mapToSource(index);
+  if (!this->adjusting && index.isValid()) {
+    if (row >= 0 && row < this->ui->messageView->model()->rowCount()) {
+      QModelIndex trueIndex =
+          this->ui->messageView->model() == this->proxy
+          ?  this->proxy->mapToSource(index)
+          : index;
       int ndx = this->model->data(trueIndex, Qt::UserRole).value<int>();
 
       if (ndx >= 0 && ndx < this->messageList.count())

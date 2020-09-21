@@ -50,7 +50,6 @@ namespace PLCTool {
     pthread_mutex_t readerMutex;
     bool readerMutexInitialized = false;
 
-    bool blinkState = 0;
     bool halting = false;
     bool halted = false;
 
@@ -300,13 +299,23 @@ PrimeAdapterImpl::onMeter(
       static_cast<PrimeAdapterImpl *>(prime13_layer_get_userdata(self));
   Concentrator *dc = impl->owner->assertConcentrator(
         PrimeAdapterImpl::getPrimeSubNetId(node));
-  Meter *meter = impl->owner->assertMeter(
-        PrimeAdapterImpl::getPrimeSubNetId(node),
-        PrimeAdapterImpl::getPrimeNodeId(node));
 
-  emit impl->owner->meterFound(dc, impl->currentTimeStamp(), meter);
+  if (PRIME13_LNID(PrimeAdapterImpl::getPrimeNodeId(node)) != 0) {
+#ifdef PLCTOOL_PROMOTE_METERS
+    Meter *meter = impl->owner->assertMeter(
+          PrimeAdapterImpl::getPrimeSubNetId(node),
+          PRIME13_SID(PrimeAdapterImpl::getPrimeNodeId(node)),
+          PRIME13_LNID(PrimeAdapterImpl::getPrimeNodeId(node)));
+#else
+    Meter *meter = impl->owner->assertMeter(
+          PrimeAdapterImpl::getPrimeSubNetId(node),
+          PRIME13_SID(PrimeAdapterImpl::getPrimeNodeId(node)),
+          PrimeAdapterImpl::getPrimeNodeId(node));
+#endif // PLCTOOL_PROMOTE_METERS
+    emit impl->owner->meterFound(dc, impl->currentTimeStamp(), meter);
+  }
 
-  return meter;
+  return nullptr;
 }
 
 BOOL
@@ -360,14 +369,26 @@ PrimeAdapterImpl::onData(
 {
   PrimeAdapterImpl *impl =
       static_cast<PrimeAdapterImpl *>(prime13_layer_get_userdata(self));
-  Meter *meter =
+
+  if (PRIME13_LNID(PrimeAdapterImpl::getPrimeNodeId(node)) != 0) {
+#ifdef PLCTOOL_PROMOTE_METERS
+    Meter *meter =
       impl->owner->assertMeter(
               PrimeAdapterImpl::getPrimeSubNetId(node),
+              PRIME13_SID(PrimeAdapterImpl::getPrimeNodeId(node)),
+              PRIME13_LNID(PrimeAdapterImpl::getPrimeNodeId(node)));
+#else
+    Meter *meter =
+      impl->owner->assertMeter(
+              PrimeAdapterImpl::getPrimeSubNetId(node),
+              PRIME13_SID(PrimeAdapterImpl::getPrimeNodeId(node)),
               PrimeAdapterImpl::getPrimeNodeId(node));
-  emit impl->owner->dataReceived(
-        meter,
-        impl->currentTimeStamp(),
-        downstream != FALSE, data, size);
+#endif // PLCTOOL_PROMOTE_METERS
+    emit impl->owner->dataReceived(
+          meter,
+          impl->currentTimeStamp(),
+          downstream != FALSE, data, size);
+  }
 
   return TRUE;
 }

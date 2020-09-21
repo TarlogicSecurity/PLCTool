@@ -348,9 +348,6 @@ Application::parseDataFrame(
   bool pwdFound = false;
   bool infoFound = false;
   std::string password;
-  std::string conformanceDesc;
-  PLCTool::Concentrator *dc =
-      static_cast<PLCTool::Concentrator *>(meter->parent()->parent());
   const uint8_t *p = nullptr;
 
   if (size < 3)
@@ -431,29 +428,26 @@ Application::parseDataFrame(
 
     if (infoFound && pwdFound) {
       std::string desc;
+      CredInfo credInfo;
+      QStringList contexts;
+
       meter->params()["AARQ_FOUND"]   = std::string("TRUE");
       meter->params()["MAX_PDU_SIZE"] = std::to_string(maxSize);
 
-      for (int i = 0; i < 24; ++i)
+      for (int i = 0; i < 24; ++i) {
         if (conformance & (1 << i))
             if (CTranslatorSimpleTags::ConformanceToString(
                   static_cast<DLMS_CONFORMANCE>(1 << i),
                   desc) == 0)
-              conformanceDesc += desc + ",";
-      if (conformanceDesc.size() > 0)
-        conformanceDesc.resize(conformanceDesc.size() - 1);
+              contexts.append(QString::fromStdString(desc));
+      }
 
-      info->pushCreds(
+      credInfo = info->pushCreds(
             timeStamp,
             QString::fromStdString(password),
-            QString::fromStdString(conformanceDesc));
+            contexts);
 
-      this->ui->pushCreds(
-            dc,
-            timeStamp,
-            meter->id(),
-            QString::fromStdString(password),
-            QString::fromStdString(conformanceDesc));
+      this->ui->pushCreds(credInfo);
     }
   }
 
@@ -471,6 +465,7 @@ Application::onOpenAdapter(void)
 {
   if (this->openAdapter(this->ui->modemPath(), this->ui->modemBaud())) {
     this->clearMeterInfo();
+    this->ui->setLoading(false);
     this->ui->setAdapter(static_cast<PLCTool::Adapter *>(this->adapter));
   }
 }
@@ -480,6 +475,7 @@ Application::onOpenLogFile(QString path)
 {
   if (this->loadLogFile(path)) {
     this->clearMeterInfo();
+    this->ui->setCounters(0, 0);
     this->ui->setLoading(true);
     this->ui->setAdapter(static_cast<PLCTool::Adapter *>(this->adapter));
   }

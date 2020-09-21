@@ -10,12 +10,15 @@ MeterUI::MeterUI(QWidget *parent, MeterInfo *info) :
     info(info),
     ui(new Ui::MeterUI)
 {
+  SubNet *top;
+
   ui->setupUi(this);
 
   this->info = info;
 
   this->frameModel = new FrameTableModel(this, info->frameList());
   this->dlmsModel  = new DLMSTableModel(this, info->messageList());
+  this->credInfoModel  = new CredInfoTableModel(this, info->credList());
 
   this->frameProxy = new QSortFilterProxyModel(this);
   this->frameProxy->setSourceModel(this->frameModel);
@@ -23,23 +26,33 @@ MeterUI::MeterUI(QWidget *parent, MeterInfo *info) :
   this->dlmsProxy = new QSortFilterProxyModel(this);
   this->dlmsProxy->setSourceModel(this->dlmsModel);
 
+  this->credInfoProxy = new QSortFilterProxyModel(this);
+  this->credInfoProxy->setSourceModel(this->credInfoModel);
+
   this->ui->frameView->setModel(this->frameProxy);
   this->ui->dlmsMessageView->setModel(this->dlmsProxy);
+  this->ui->credInfoView->setModel(this->credInfoProxy);
 
-  this->ui->snLabel->setText(
-        QString::fromStdString(
-          PrimeAdapter::idToSna(info->meter()->parent()->parent()->id())));
+  top = info->meter()->top();
+
+  if (top != nullptr && top->parent() != nullptr) {
+    this->ui->snLabel->setText(
+          QString::fromStdString(
+            PrimeAdapter::idToSna(top->parent()->id())));
+  } else {
+    this->ui->snLabel->setText("N/A");
+  }
 
   this->ui->nodeIdLabel->setText(
-        QString().sprintf(
+        QString().asprintf(
           "%06llx",
           static_cast<quint64>(info->meter()->id())));
   this->ui->sidLabel->setText(
-        QString().sprintf(
+        QString().asprintf(
           "0x%llx",
           static_cast<quint64>(PRIME13_SID(info->meter()->id()))));
   this->ui->lnidLabel->setText(
-        QString().sprintf(
+        QString().asprintf(
           "0x%llx",
           static_cast<quint64>(PRIME13_LNID(info->meter()->id()))));
 
@@ -47,9 +60,6 @@ MeterUI::MeterUI(QWidget *parent, MeterInfo *info) :
 
   this->savedHtml = this->ui->hexEdit->toHtml();
   this->savedText = this->ui->xmlEdit->toPlainText();
-
-  for (auto p : *(info->credList()))
-    this->onCredentialsFound(p.timeStamp, p.password, p.context);
 
   this->connectAll();
   this->connectMeterInfo();
@@ -119,25 +129,48 @@ MeterUI::connectMeterInfo(void)
 
   connect(
         this->info,
-        SIGNAL(credentialsFound(QDateTime,QString,QString)),
+        SIGNAL(credentialsFound(CredInfo)),
         this,
-        SLOT(onCredentialsFound(QDateTime,QString,QString)));
+        SLOT(onCredInfo(CredInfo)));
 }
 
 void
 MeterUI::refreshViews(void)
 {
-  this->frameModel->refreshData();
-  this->dlmsModel->refreshData();
+  if (this->info->pendingFrameList()->size() > 0) {
+    bool firstIter = this->info->frameList()->size() > 0;
+
+    this->frameModel->appendData(*this->info->pendingFrameList());
+    this->info->commitFrames();
+
+    if (firstIter)
+      this->ui->frameView->resizeColumnsToContents();
+  }
+
+  if (this->info->pendingMessageList()->size() > 0) {
+    bool firstIter = this->info->messageList()->size() > 0;
+
+    this->dlmsModel->appendData(*this->info->pendingMessageList());
+    this->info->commitMessages();
+
+    if (firstIter)
+      this->ui->dlmsMessageView->resizeColumnsToContents();
+  }
+
+  if (this->info->pendingCredList()->size() > 0) {
+    bool firstIter = this->info->credList()->size() > 0;
+
+    this->credInfoModel->appendData(*this->info->pendingCredList());
+    this->info->commitCreds();
+
+    if (firstIter)
+      this->ui->credInfoView->resizeColumnsToContents();
+  }
 
   if (this->isVisible()) {
     this->ui->frameView->scrollToBottom();
     this->ui->dlmsMessageView->scrollToBottom();
-  }
-
-  for (int i = 0; i < 8; ++i) {
-    this->ui->frameView->resizeColumnToContents(i);
-    this->ui->dlmsMessageView->resizeColumnToContents(i);
+    this->ui->credInfoView->scrollToBottom();
   }
 
   if (!this->info->frameList()->empty())
@@ -164,9 +197,9 @@ MeterUI::onDlmsMessage(DlmsMessage message)
 }
 
 void
-MeterUI::onCreds(QString, QString)
+MeterUI::onCredInfo(CredInfo info)
 {
-
+  this->ui->lastActivityLabel->setText(info.timeStamp.toString());
 }
 
 void
@@ -226,36 +259,4 @@ void
 MeterUI::onDlmsCurrentChanged(QModelIndex curr, QModelIndex)
 {
   onDlmsCellActivated(curr);
-}
-
-void
-MeterUI::onCredentialsFound(QDateTime timeStamp, QString passwd, QString ctx)
-{
-  QTableWidgetItem *timeItem = new QTableWidgetItem(timeStamp.toString());
-  QTableWidgetItem *typeItem = new QTableWidgetItem(QString("LLS"));
-  QTableWidgetItem *pwdItem = new QTableWidgetItem(passwd);
-  QTableWidgetItem *ctxItem = new QTableWidgetItem(ctx);
-
-  int rows = this->ui->credTableWidget->rowCount();
-
-  this->ui->credTableWidget->insertRow(rows);
-
-  this->ui->credTableWidget->setItem(
-        rows,
-        0,
-        timeItem);
-  this->ui->credTableWidget->setItem(
-        timeItem->row(),
-        1,
-        typeItem);
-  this->ui->credTableWidget->setItem(
-        timeItem->row(),
-        2,
-        pwdItem);
-  this->ui->credTableWidget->setItem(
-        timeItem->row(),
-        3,
-        ctxItem);
-
-  this->ui->credTableWidget->resizeColumnsToContents();
 }

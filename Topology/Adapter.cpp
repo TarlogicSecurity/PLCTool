@@ -121,25 +121,31 @@ Adapter::assertConcentrator(std::string const &string)
 }
 
 Meter *
-Adapter::assertMeter(NodeId dc, NodeId id)
+Adapter::assertMeter(NodeId dc, NodeId sid, NodeId id)
 {
   if (this->subNet != nullptr) {
     Node *dcNode = this->nodes()[dc];
 
     if (dcNode != nullptr) {
       Concentrator *dcCon = static_cast<Concentrator *>(dcNode);
-      Node *node = dcCon->subNet()[id];
+#ifdef PLCTOOL_PROMOTE_METERS
+      SubNet *sn = dcCon->getSubNetFor(sid);
+#else
+      SubNet *sn = &dcCon->subNet();
+      (void) sid;
+#endif // PLCTOOL_PROMOTE_METERS
+      Node *node = (*sn)[id];
       Meter *existing = nullptr;
 
       if (node == nullptr) {
-        existing = new Meter(&(dcCon->subNet()), id);
-        if (!dcCon->subNet().registerNode(existing)) {
+        existing = new Meter(nullptr, id);
+        if (!(*sn).registerNode(existing)) {
           delete existing;
           return nullptr;
         }
 
         this->eventDispatcher.onNodeUp(existing);
-      } else if (node->type() == METER) {
+      } else if (node->type() == METER || node->type() == SWITCH) {
         existing = static_cast<Meter *>(node);
       }
 

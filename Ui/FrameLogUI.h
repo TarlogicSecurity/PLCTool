@@ -25,6 +25,7 @@ class FrameLogUI : public QWidget
   FrameTableModel *model = nullptr;
   QSortFilterProxyModel *proxy = nullptr;
 
+  QVector<Frame> pendingList;
   QVector<Frame> frameList;
   QString savedHtml;
 
@@ -32,6 +33,7 @@ class FrameLogUI : public QWidget
 
   void connectAll(void);
   bool adjusting = false;
+  bool sortingEnabled = false;
 
 public:
   static void registerTypes(void);
@@ -43,6 +45,7 @@ public:
       PLCTool::PrimeFrame::GenericType,
       PLCTool::NodeId);
   void clear(void);
+  void setSortingEnabled(bool);
 
   ~FrameLogUI();
 

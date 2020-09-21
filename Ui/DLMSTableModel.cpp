@@ -134,11 +134,18 @@ DLMSTableModel::data(const QModelIndex &index, int role) const
   return QVariant();
 }
 
-void
-DLMSTableModel::refreshData(void)
-{
-  if (this->messageList->size() != this->lastSize)
-    emit layoutChanged();
 
-  this->lastSize = this->messageList->size();
+void
+DLMSTableModel::appendData(QVector<DlmsMessage> const &newData)
+{
+  if (newData.size() > 0) {
+    beginInsertRows(
+          QModelIndex(),
+          this->messageList->size(),
+          this->messageList->size() + newData.size() - 1);
+
+    this->messageList->append(newData);
+
+    endInsertRows();
+  }
 }

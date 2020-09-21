@@ -1,28 +1,26 @@
-#ifndef DLMSTABLEMODEL_H
-#define DLMSTABLEMODEL_H
+#ifndef CREDENTIALMODEL_H
+#define CREDENTIALMODEL_H
 
 #include <QAbstractTableModel>
-#include <PRIME/PrimeFrame.h>
-#include <QDateTime>
 #include <QVector>
-#include <App/DLMSProcessor.h>
+#include <App/MeterInfo.h>
 
-class DLMSTableModel : public QAbstractTableModel
+class CredInfoTableModel : public QAbstractTableModel
 {
   Q_OBJECT
 
-  QVector<DlmsMessage> *messageList;
+  QVector<CredInfo> *credInfoList;
   int lastSize = 0;
 
 public:
-  DLMSTableModel(QObject *parent, QVector<DlmsMessage> *);
+  CredInfoTableModel(QObject *, QVector<CredInfo> *);
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
   int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
   QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
-  void appendData(QVector<DlmsMessage> const &);
+  void appendData(QVector<CredInfo> const &);
 };
 
-#endif // DLMSTABLEMODEL_H
+#endif // CREDENTIALMODEL_H

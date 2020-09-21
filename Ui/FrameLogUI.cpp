@@ -23,12 +23,22 @@ FrameLogUI::FrameLogUI(QWidget *parent) :
   this->proxy = new QSortFilterProxyModel(this);
 
   this->proxy->setSourceModel(this->model);
-  this->ui->frameView->setModel(this->model);
-  this->ui->frameView->setSortingEnabled(true);
-  this->proxy->sort(-1);
+  this->setSortingEnabled(this->sortingEnabled);
+  this->proxy->sort(1);
   this->connectAll();
 
   this->savedHtml = this->ui->hexEdit->toHtml();
+}
+
+void
+FrameLogUI::setSortingEnabled(bool enabled)
+{
+  this->sortingEnabled = enabled;
+  this->ui->frameView->setModel(
+        enabled
+        ? static_cast<QAbstractItemModel *>(this->proxy)
+        : static_cast<QAbstractItemModel *>(this->model));
+  this->ui->frameView->setSortingEnabled(enabled);
 }
 
 void
@@ -134,32 +144,37 @@ FrameLogUI::clear(void)
 void
 FrameLogUI::saveFrame(Frame const &frame)
 {
-  this->frameList.append(frame);
+  this->pendingList.append(frame);
 }
 
 void
 FrameLogUI::refreshFrames(void)
 {
-  int rows = this->frameList.size();
-  bool oldAdjusting = this->adjusting;
-  this->adjusting = true;
+  if (this->pendingList.size() > 0) {
+    int rows;
+    bool oldAdjusting = this->adjusting;
+    bool firstIter = this->frameList.size() == 0;
+    this->adjusting = true;
+    this->model->appendData(this->pendingList);
+    this->pendingList.clear();
 
-  this->model->refreshData();
+    rows = this->frameList.size();
 
-  this->ui->lineSpin->setMinimum(rows > 0 ? 1 : 0);
-  this->ui->lineSpin->setMaximum(rows);
-  this->ui->lineSpin->setEnabled(rows > 0);
-  this->ui->gotoButton->setEnabled(rows > 0);
-  this->ui->topButton->setEnabled(rows > 0);
-  this->ui->bottomButton->setEnabled(rows > 0);
+    this->ui->lineSpin->setMinimum(rows > 0 ? 1 : 0);
+    this->ui->lineSpin->setMaximum(rows);
+    this->ui->lineSpin->setEnabled(rows > 0);
+    this->ui->gotoButton->setEnabled(rows > 0);
+    this->ui->topButton->setEnabled(rows > 0);
+    this->ui->bottomButton->setEnabled(rows > 0);
 
-  if (this->ui->autoScrollButton->isChecked())
-    this->ui->frameView->scrollToBottom();
+    if (this->ui->autoScrollButton->isChecked())
+      this->ui->frameView->scrollToBottom();
 
-  for (int i = 0; i < 8; ++i)
-    this->ui->frameView->resizeColumnToContents(i);
+    if (firstIter)
+      this->ui->frameView->resizeColumnsToContents();
 
-  this->adjusting = oldAdjusting;
+    this->adjusting = oldAdjusting;
+  }
 }
 
 void
@@ -194,9 +209,12 @@ FrameLogUI::onCellActivated(const QModelIndex &index)
   Frame *frame = nullptr;
   int row = index.row();
 
-  if (!this->adjusting) {
-    if (row >= 0 && row < this->proxy->rowCount()) {
-      QModelIndex trueIndex = this->proxy->mapToSource(index);
+  if (!this->adjusting && index.isValid()) {
+    if (row >= 0 && row < this->ui->frameView->model()->rowCount()) {
+      QModelIndex trueIndex =
+          this->sortingEnabled
+          ?  this->proxy->mapToSource(index)
+          : index;
 
       int ndx = this->model->data(trueIndex, Qt::UserRole).value<int>();
 

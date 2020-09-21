@@ -4,12 +4,22 @@
 #include "PRIME/PrimeAdapter.h"
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QSortFilterProxyModel>
+#include "CredInfoTableModel.h"
 
 CredentialsUI::CredentialsUI(QWidget *parent) :
   QWidget(parent),
   ui(new Ui::CredentialsUI)
 {
   ui->setupUi(this);
+
+  this->model = new CredInfoTableModel(this, &this->credList);
+  this->proxy = new QSortFilterProxyModel(this);
+
+  this->proxy->setSourceModel(this->model);
+  this->ui->tableView->setModel(this->proxy);
+  this->setSortingEnabled(false);
+  this->proxy->sort(1);
 
   this->connectAll();
 }
@@ -31,6 +41,13 @@ CredentialsUI::connectAll(void)
 }
 
 void
+CredentialsUI::clear(void)
+{
+  this->credList.clear();
+  this->refreshCredentials();
+}
+
+void
 CredentialsUI::saveLog(QString path)
 {
   FILE *fp = nullptr;
@@ -44,16 +61,23 @@ CredentialsUI::saveLog(QString path)
     int i;
 
     for (i = 0; i < this->credList.count(); ++i) {
-      Creds *c = &this->credList[i];
+      CredInfo *c = &this->credList[i];
 
       fprintf(
             fp,
-            "%d,%s,%d,%06x,%s\n",
-            i + 1,
-            c->SNA.toStdString().c_str(),
+            "%u,%s,%06lx,%s,%s,%s,%s\n",
             c->timeStamp.toTime_t(),
-            (unsigned int) c->meter,
-            c->password.toStdString().c_str());
+            c->owner->meter()->name().size() > 0
+              ? c->owner->meter()->name().c_str()
+              : "N/A",
+            c->owner->meter()->id(),
+            c->owner->meter()->macAddr().size() > 0
+              ? c->owner->meter()->macAddr().c_str()
+              : "N/A",
+            PLCTool::PrimeAdapter::idToSna(
+              c->owner->meter()->parent()->parent()->id()).c_str(),
+            c->password.toStdString().c_str(),
+            c->contexts.join(",").toStdString().c_str());
     }
 
     fclose(fp);
@@ -61,75 +85,54 @@ CredentialsUI::saveLog(QString path)
 }
 
 
-
 void
-CredentialsUI::saveCreds(
-    const PLCTool::Concentrator *dc,
-    QDateTime timeStamp,
-    PLCTool::NodeId meter,
-    QString password)
+CredentialsUI::setSortingEnabled(bool enabled)
 {
-  Creds creds;
-
-  creds.SNA       = QString::fromStdString(
-        PLCTool::PrimeAdapter::idToSna(dc->id()));
-  creds.meter     = meter;
-  creds.password  = password;
-  creds.timeStamp = timeStamp;
-
-  this->credList.append(creds);
+  this->sortingEnabled = enabled;
+  this->ui->tableView->setModel(
+        enabled
+        ? static_cast<QAbstractItemModel *>(this->proxy)
+        : static_cast<QAbstractItemModel *>(this->model));
+  this->ui->tableView->setSortingEnabled(enabled);
 }
 
 void
-CredentialsUI::pushCreds(
-    const PLCTool::Concentrator *dc,
-    QDateTime timeStamp,
-    PLCTool::NodeId meter,
-    QString password)
+CredentialsUI::saveCreds(CredInfo const &creds)
 {
-  int rows = this->ui->tableWidget->rowCount();
-  char nodeIdStr[16];
-
-  snprintf(nodeIdStr, sizeof(nodeIdStr), "%06x", (unsigned int) meter);
-
-  QTableWidgetItem *id = new QTableWidgetItem();
-  QTableWidgetItem *time = new QTableWidgetItem(timeStamp.toString());
-  QTableWidgetItem *SNA =
-      new QTableWidgetItem(
-        QString::fromStdString(
-          PLCTool::PrimeAdapter::idToSna(dc->id())));
-  QTableWidgetItem *meterId = new QTableWidgetItem(nodeIdStr);
-  QTableWidgetItem *pwdItem = new QTableWidgetItem(password);
-
-  this->saveCreds(dc, timeStamp, meter, password);
-  this->ui->tableWidget->insertRow(rows);
-
-  id->setData(Qt::DisplayRole, QVariant::fromValue<int>(rows + 1));
-
-  this->ui->tableWidget->setItem(
-        rows,
-        0,
-        id);
-  this->ui->tableWidget->setItem(
-        id->row(),
-        1,
-        time);
-  this->ui->tableWidget->setItem(
-        id->row(),
-        2,
-        SNA);
-  this->ui->tableWidget->setItem(
-        id->row(),
-        3,
-        meterId);
-  this->ui->tableWidget->setItem(
-        id->row(),
-        4,
-        pwdItem);
-
-  this->ui->tableWidget->resizeColumnsToContents();
-  this->ui->tableWidget->scrollToBottom();
+  this->pendingList.append(creds);
 }
+
+void
+CredentialsUI::refreshCredentials(void)
+{
+  if (this->pendingList.size() > 0) {
+    int rows;
+    bool firstIter = this->credList.size() == 0;
+    bool oldAdjusting = this->adjusting;
+    this->adjusting = true;
+
+    this->model->appendData(this->pendingList);
+    this->pendingList.clear();
+
+    rows = this->credList.size();
+
+    this->ui->lineSpin->setMinimum(1);
+    this->ui->lineSpin->setMaximum(rows);
+    this->ui->lineSpin->setEnabled(true);
+    this->ui->gotoButton->setEnabled(true);
+    this->ui->topButton->setEnabled(true);
+    this->ui->bottomButton->setEnabled(true);
+
+    if (this->ui->autoScrollButton->isChecked())
+      this->ui->tableView->scrollToBottom();
+
+    if (firstIter)
+      this->ui->tableView->resizeColumnsToContents();
+
+    this->adjusting = oldAdjusting;
+  }
+}
+
 
 CredentialsUI::~CredentialsUI()
 {
@@ -152,6 +155,7 @@ CredentialsUI::onSaveAs(bool)
   dialog.setNameFilter("Password log (*.log)");
   dialog.setViewMode(QFileDialog::Detail);
   dialog.setAcceptMode(QFileDialog::AcceptSave);
+
   if (dialog.exec()) {
     QStringList list = dialog.selectedFiles();
 

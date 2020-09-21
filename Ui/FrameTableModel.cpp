@@ -135,11 +135,16 @@ FrameTableModel::data(const QModelIndex &index, int role) const
 }
 
 void
-FrameTableModel::refreshData(void)
+FrameTableModel::appendData(QVector<Frame> const &newData)
 {
-  if (this->frameList->size() != this->lastSize)
-    emit layoutChanged();
+  if (newData.size() > 0) {
+    beginInsertRows(
+          QModelIndex(),
+          this->frameList->size(),
+          this->frameList->size() + newData.size() - 1);
 
-  this->lastSize = this->frameList->size();
+    this->frameList->append(newData);
+
+    endInsertRows();
+  }
 }
-

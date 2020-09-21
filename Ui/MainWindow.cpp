@@ -124,9 +124,14 @@ MainWindow::setConnectState(bool state)
 void
 MainWindow::notifySubNetChanges(void)
 {
+  bool doResize = this->model->rowCount() < 2;
+
   this->model->notifyLayout();
-  this->ui->topologyView->resizeColumnToContents(0);
-  this->ui->topologyView->resizeColumnToContents(1);
+
+  if (doResize) {
+    this->ui->topologyView->resizeColumnToContents(0);
+    this->ui->topologyView->resizeColumnToContents(1);
+  }
 }
 
 MainWindow::~MainWindow()
@@ -148,6 +153,8 @@ MainWindow::onNodeActivated(QModelIndex index)
 {
   PLCTool::Node *node = this->model->node(index);
 
-  if (node != nullptr && node->type() == PLCTool::METER)
+  if (node != nullptr
+      && (node->type() == PLCTool::METER
+          || node->type() == PLCTool::SWITCH))
     emit openMeterInfo(static_cast<PLCTool::Meter *>(node));
 }

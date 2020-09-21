@@ -58,6 +58,30 @@ SubNet::length(void) const
   return this->allocation.size();
 }
 
+void
+SubNet::setNetId(SubNetId id)
+{
+  this->id = id;
+}
+
+SubNetId
+SubNet::netId(void) const
+{
+  return this->id;
+}
+
+
+void
+SubNet::rebuildList(void)
+{
+  size_t i = 0;
+  this->nodeList.resize(this->idMap.size());
+
+  for (auto p : this->idMap) {
+    p.second->setListNdx(i);
+    this->nodeList[i++] = p.second;
+  }
+}
 Node *
 SubNet::nodeAt(size_t index) const
 {
@@ -67,9 +91,28 @@ SubNet::nodeAt(size_t index) const
   return this->allocation[index];
 }
 
-bool
-SubNet::remove(Node *node)
+size_t
+SubNet::listCount(void) const
 {
+  return this->nodeList.size();
+}
+
+Node *
+SubNet::listNodeAt(size_t id) const
+{
+  if (id >= this->listCount())
+    return nullptr;
+
+  return this->nodeList[id];
+}
+
+bool
+SubNet::disown(Node *node)
+{
+  if (node->parent() != this) {
+    fprintf(stderr, "ERROR: %p != %p\n", node->parent(), this);
+  }
+
   PH_CHECK_PARAM(node->parent() == this, "Parent subnetwork for node");
   PH_CHECK_PARAM(
       node->allocNdx() >= 0
@@ -84,6 +127,18 @@ SubNet::remove(Node *node)
 
   this->allocation[node->allocNdx()] = nullptr;
   this->lastFree = node->allocNdx();
+  this->rebuildList();
+
+  node->setParent(nullptr);
+
+  return true;
+}
+
+bool
+SubNet::remove(Node *node)
+{
+  if (!this->disown(node))
+    return false;
 
   delete node;
 
@@ -131,6 +186,10 @@ SubNet::registerNode(Node *node)
 
   PH_CHECK_PARAM(node != nullptr, "Pointer to node object");
 
+  PH_CHECK_PARAM(
+      node->parent() == nullptr || node->parent() == this,
+      "Node parent");
+
   existing = (*this)[node->id()];
 
   PH_CHECK_PARAM(
@@ -151,10 +210,28 @@ SubNet::registerNode(Node *node)
     node->setAllocNdx(where);
     node->setParent(this);
     this->idMap.emplace(node->id(), node);
+    node->setListNdx(this->nodeList.size());
+    this->nodeList.push_back(node);
   }
 
   if (node->name().size() > 0)
     this->nameMap.emplace(node->name(), node);
+
+  return true;
+}
+
+
+bool
+SubNet::moveHere(Node *node)
+{
+  if (node->parent() != nullptr)
+    if (!node->parent()->disown(node))
+      return false;
+
+  if (!this->registerNode(node)) {
+    fprintf(stderr, "Warning: failed to move node here. Memory leak!\n");
+    return false;
+  }
 
   return true;
 }

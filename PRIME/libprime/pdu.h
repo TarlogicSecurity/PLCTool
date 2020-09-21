@@ -105,6 +105,25 @@ struct prime13_reg_header {
   } keys[0];
 } PACKED;
 
+struct prime13_pro_header {
+  struct {
+    uint8_t time:3;
+    uint8_t rq:3;
+    uint8_t r:1;
+    uint8_t n:1;
+  } PACKED;
+  uint8_t nsid;
+  uint8_t pna[6];
+  uint8_t upcost;
+  uint8_t dncost;
+  struct {
+    uint8_t swc_arq:1;
+    uint8_t swc_prm:1;
+    uint8_t swc_mc:1;
+    uint8_t swc_dc:1;
+  } PACKED;
+};
+
 struct prime13_con_header {
   union {
     struct {
@@ -175,6 +194,7 @@ struct prime13_packet_hdr {
   union {
     struct prime13_con_header con[0];
     struct prime13_reg_header reg[0];
+    struct prime13_pro_header pro[0];
     struct prime13_arq_header arq[0];
     uint8_t payload[0];
   };
