@@ -99,6 +99,76 @@ PrimeFrame::deserializeREG(struct prime13_reg_header *hdr, size_t size)
   return true;
 }
 
+std::vector<uint8_t>
+PrimeFrame::serializePRO(void) const
+{
+  size_t expectedSize;
+  std::vector<uint8_t> pdu;
+  bool is_pro_req_s =
+      !this->PDU.HDR.DO && !this->PDU.PRO.N && this->PDU.PRO.NSID == 0xff;
+  struct prime13_pro_header *hdr;
+
+  expectedSize = is_pro_req_s ? sizeof(struct prime13_pro_header) : 2;
+
+  pdu.resize(expectedSize);
+
+  hdr = reinterpret_cast<struct prime13_pro_header *>(pdu.data());
+
+  hdr->n = this->PDU.PRO.N;
+  hdr->r = 0;
+  hdr->rq = this->PDU.PRO.RQ;
+  hdr->time = this->PDU.PRO.TIME;
+  hdr->nsid = this->PDU.PRO.TIME;
+
+  if (is_pro_req_s) {
+    memcpy(hdr->pna, this->PDU.PRO.PNA, 6);
+    hdr->swc_dc  = this->PDU.PRO.SWC_DC;
+    hdr->swc_mc  = this->PDU.PRO.SWC_MC;
+    hdr->swc_arq = this->PDU.PRO.SWC_ARQ;
+    hdr->swc_prm = this->PDU.PRO.SWC_PRM;
+  }
+
+  return pdu;
+}
+
+bool
+PrimeFrame::deserializePRO(
+    struct prime13_pro_header *hdr,
+    size_t size)
+{
+  bool is_pro_req_s;
+  size_t expectedSize;
+
+  if (size < 2) {
+    fprintf(stderr, "PRO: Size is too small (%ld<2)\n", size);
+    return false;
+  }
+
+  this->PDU.genType = GenericType::PRO;
+
+  is_pro_req_s = !this->PDU.HDR.DO && !hdr->n && hdr->nsid == 0xff;
+  expectedSize = is_pro_req_s ? sizeof(struct prime13_pro_header) : 2;
+
+  if (size != expectedSize) {
+    fprintf(stderr,  "PRO: Unexpected size (%ld != %ld)\n", size, expectedSize);
+    return false;
+  }
+
+  this->PDU.PRO.N    = hdr->n;
+  this->PDU.PRO.RQ   = hdr->rq;
+  this->PDU.PRO.TIME = hdr->time;
+  this->PDU.PRO.NSID = hdr->nsid;
+
+  if (is_pro_req_s) {
+    memcpy(this->PDU.PRO.PNA, hdr->pna, 6);
+    this->PDU.PRO.SWC_DC  = hdr->swc_dc;
+    this->PDU.PRO.SWC_MC  = hdr->swc_mc;
+    this->PDU.PRO.SWC_ARQ = hdr->swc_arq;
+    this->PDU.PRO.SWC_PRM = hdr->swc_prm;
+  }
+
+  return true;
+}
 
 std::vector<uint8_t>
 PrimeFrame::serializeCON(void) const
@@ -392,6 +462,9 @@ PrimeFrame::serializeGeneric(void) const
       break;
 
     case GenericType::PRO:
+      payload = this->serializePRO();
+      break;
+
     case GenericType::BSI:
     case GenericType::FRA:
     case GenericType::CFP:
@@ -454,6 +527,10 @@ PrimeFrame::deserializeGeneric(struct prime13_packet_hdr *header)
 
       case GenericType::REG:
         ok = this->deserializeREG(header->reg, header->len);
+        break;
+
+      case GenericType::PRO:
+        ok = this->deserializePRO(header->pro, header->len);
         break;
 
       default:
@@ -792,6 +869,31 @@ PrimeFrame::printREG(std::string &dest) const
 }
 
 void
+PrimeFrame::printPRO(std::string &dest) const
+{
+  printToString(dest, "  frame->PDU.PRO.N       = 0x%x;\n", this->PDU.PRO.N);
+  printToString(dest, "  frame->PDU.PRO.RQ      = 0x%x;\n", this->PDU.PRO.RQ);
+  printToString(dest, "  frame->PDU.PRO.TIME    = 0x%x;\n", this->PDU.PRO.TIME);
+  printToString(dest, "  frame->PDU.PRO.NSID    = 0x%x;\n", this->PDU.PRO.NSID);
+
+  if (!this->PDU.HDR.DO && !this->PDU.PRO.N && this->PDU.PRO.NSID == 0xff) {
+    printToString(dest,
+        "  memcpy(frame->PDU.PRO.PNA, hexStrToVec(\"%02x%02x%02x%02x%02x%02x\").data(), 6);\n",
+        this->PDU.PRO.PNA[0],
+        this->PDU.PRO.PNA[1],
+        this->PDU.PRO.PNA[2],
+        this->PDU.PRO.PNA[3],
+        this->PDU.PRO.PNA[4],
+        this->PDU.PRO.PNA[5]);
+
+    printToString(dest, "  frame->PDU.PRO.SWC_DC  = 0x%x;\n", this->PDU.PRO.SWC_DC);
+    printToString(dest, "  frame->PDU.PRO.SWC_MC  = 0x%x;\n", this->PDU.PRO.SWC_MC);
+    printToString(dest, "  frame->PDU.PRO.SWC_PRM = 0x%x;\n", this->PDU.PRO.SWC_PRM);
+    printToString(dest, "  frame->PDU.PRO.SWC_ARQ = 0x%x;\n", this->PDU.PRO.SWC_ARQ);
+  }
+}
+
+void
 PrimeFrame::printDATA(std::string &dest) const
 {
   printToString(dest, "  frame->PDU.ARQ.PKTID   = %d;\n", this->PDU.ARQ.PKTID);
@@ -848,6 +950,10 @@ PrimeFrame::printGeneric(std::string &dest) const
       printToString(dest, "  frame->PDU.genType     = PrimeFrame::REG;\n");
       break;
 
+    case PrimeFrame::PRO:
+      printToString(dest, "  frame->PDU.genType     = PrimeFrame::PRO;\n");
+      break;
+
     case GenericType::BSI:
     case GenericType::FRA:
     case GenericType::CFP:
@@ -855,7 +961,6 @@ PrimeFrame::printGeneric(std::string &dest) const
     case GenericType::MUL:
     case GenericType::PRM:
     case GenericType::SEC:
-    case GenericType::PRO:
       break;
   }
 
@@ -882,6 +987,9 @@ PrimeFrame::printGeneric(std::string &dest) const
       break;
 
     case GenericType::PRO:
+      this->printPRO(dest);
+      break;
+
     case GenericType::BSI:
     case GenericType::FRA:
     case GenericType::CFP:

@@ -72,6 +72,9 @@ QtUi::breathe(void)
     if (this->dlmsLogUi != nullptr)
       this->dlmsLogUi->refreshMessages();
 
+    if (this->credentialsUi != nullptr)
+      this->credentialsUi->refreshCredentials();
+
     if (this->parsedFrameCounter == 0
         && this->totalFrameCounter > 0) {
       this->loadingMessage("Counting frames");
@@ -101,6 +104,15 @@ QtUi::~QtUi()
 void
 QtUi::setLoading(bool state)
 {
+  if (this->frameLogUi != nullptr)
+    this->frameLogUi->setSortingEnabled(!state);
+
+  if (this->dlmsLogUi != nullptr)
+    this->dlmsLogUi->setSortingEnabled(!state);
+
+  if (this->credentialsUi != nullptr)
+    this->credentialsUi->setSortingEnabled(!state);
+
   if (state)
     this->loadingDialog->show();
   else
@@ -128,6 +140,8 @@ QtUi::setAdapter(PLCTool::Adapter *adapter)
       this->frameLogUi->clear();
     if (this->dlmsLogUi != nullptr)
       this->dlmsLogUi->clear();
+    if (this->credentialsUi != nullptr)
+      this->credentialsUi->clear();
 
     for (auto p : this->meterUiMap.keys()) {
       QString windowName = "MeterInfo." + QString::number(p);
@@ -270,6 +284,9 @@ QtUi::refreshViews(void)
   if (this->dlmsLogUi != nullptr)
     this->dlmsLogUi->refreshMessages();
 
+  if (this->credentialsUi != nullptr)
+    this->credentialsUi->refreshCredentials();
+
   for (auto p : this->meterUiMap)
     p->refreshViews();
 }
@@ -291,19 +308,17 @@ QtUi::pushDlmsMessage(DlmsMessage const &message)
 }
 
 void
-QtUi::pushCreds(
-    const PLCTool::Concentrator *dc,
-    QDateTime timeStamp,
-    PLCTool::NodeId meter,
-    QString password,
-    QString conformance)
+QtUi::pushCreds(CredInfo const &info)
 {
-  QSaneMdiSubWindow *sw = this->mainWindow->findWindow("CredsLog");
+  if (this->credentialsUi == nullptr) {
+    QSaneMdiSubWindow *sw = this->mainWindow->findWindow("CredsLog");
 
-  if (sw != nullptr) {
-    CredentialsUI *ui = static_cast<CredentialsUI *>(sw->widget());
+    if (sw != nullptr)
+      this->credentialsUi = static_cast<CredentialsUI *>(sw->widget());
+  }
 
-    ui->pushCreds(dc, timeStamp, meter, password);
+  if (this->credentialsUi != nullptr) {
+    this->credentialsUi->saveCreds(info);
     this->breathe();
   }
 }

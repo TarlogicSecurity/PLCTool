@@ -33,6 +33,7 @@ SOURCES += main.cpp\
     PRIME/spip/loop.c \
     PRIME/spip/spip.c \
     App/Application.cpp \
+    Ui/CredInfoTableModel.cpp \
     Ui/QtUi.cpp \
     Ui/TopologyModel.cpp \
     Ui/ModemDialog.cpp \
@@ -181,7 +182,7 @@ SOURCES += main.cpp\
     App/PRIMEProcessor.cpp \
     App/MeterInfo.cpp
 
-HEADERS  += MainWindow.h \
+HEADERS  += Ui/MainWindow.h \
     Topology/Adapter.h \
     Topology/AdapterEventListener.h \
     Topology/Concentrator.h \
@@ -201,6 +202,7 @@ HEADERS  += MainWindow.h \
     PRIME/PrimeAdapter.h \
     PRIME/spip/spip.h \
     App/Application.h \
+    Ui/CredInfoTableModel.h \
     Ui/QtUi.h \
     Ui/TopologyModel.h \
     Ui/MainWindow.h \
@@ -382,3 +384,6 @@ FORMS    += Forms/MainWindow.ui \
     Forms/LoadingStatusDialog.ui
 
 unix: LIBS += -ldl
+
+RESOURCES += \
+    icons.qrc

@@ -17,11 +17,15 @@
 
 namespace PLCTool {
   typedef std::vector<Node *> NodeVector;
+  typedef uint32_t SubNetId;
   class SubNet {
     Node *parentNode = nullptr;
     NodeVector allocation;
+    SubNetId id = 0;
     std::map<NodeId, Node *> idMap;
     std::map<std::string, Node *> nameMap;
+    std::vector<Node *> nodeList;
+
     int lastFree = -1; // Slight speedup
 
   public:
@@ -31,10 +35,18 @@ namespace PLCTool {
 
       size_t length(void) const;
 
+      void setNetId(SubNetId);
+      SubNetId netId(void) const;
+
       Node *operator[] (std::string const &);
       Node *operator[] (NodeId);
       Node *nodeAt(size_t) const;
 
+      void rebuildList(void);
+      size_t listCount(void) const;
+      Node *listNodeAt(size_t) const;
+
+      bool disown(Node *);
       bool remove(Node *);
       bool remove(std::string const &);
       bool remove(NodeId);
@@ -43,6 +55,8 @@ namespace PLCTool {
       bool contains(NodeId) const;
 
       bool registerNode(Node *);
+
+      bool moveHere(Node *);
 
       NodeVector::const_iterator
       begin(void) const

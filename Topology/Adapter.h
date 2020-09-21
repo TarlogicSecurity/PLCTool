@@ -62,7 +62,7 @@ namespace PLCTool {
 
     Concentrator *assertConcentrator(NodeId);
     Concentrator *assertConcentrator(std::string const &);
-    Meter *assertMeter(NodeId, NodeId);
+    Meter *assertMeter(NodeId, NodeId, NodeId);
     Switch *assertSwitch(NodeId, NodeId);
 
     void addListener(AdapterEventListener *);

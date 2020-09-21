@@ -36,7 +36,7 @@
        <item row="0" column="0">
         <widget class="QFrame" name="frame">
          <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
+          <enum>QFrame::NoFrame</enum>
          </property>
          <property name="frameShadow">
           <enum>QFrame::Raised</enum>
@@ -156,11 +156,11 @@
          <property name="sortingEnabled">
           <bool>true</bool>
          </property>
-         <attribute name="horizontalHeaderHighlightSections">
-          <bool>true</bool>
-         </attribute>
          <attribute name="horizontalHeaderMinimumSectionSize">
           <number>60</number>
+         </attribute>
+         <attribute name="horizontalHeaderHighlightSections">
+          <bool>true</bool>
          </attribute>
          <attribute name="horizontalHeaderStretchLastSection">
           <bool>true</bool>
@@ -168,10 +168,10 @@
          <attribute name="verticalHeaderCascadingSectionResizes">
           <bool>false</bool>
          </attribute>
-         <attribute name="verticalHeaderDefaultSectionSize">
-          <number>0</number>
-         </attribute>
          <attribute name="verticalHeaderMinimumSectionSize">
+          <number>14</number>
+         </attribute>
+         <attribute name="verticalHeaderDefaultSectionSize">
           <number>14</number>
          </attribute>
          <attribute name="verticalHeaderStretchLastSection">

@@ -24,13 +24,14 @@ namespace PLCTool {
     UNDEFINED,
     METER,
     SWITCH,
-    CONCENTRATOR
+    CONCENTRATOR,
+    HUB
   };
 
   class Node {
-    NodeType eType;
     NodeId niId;
     int iAllocNdx;
+    int iListNdx;
     std::string nodeName;
     std::string mMacAddr;
     SubNet *snParent;
@@ -39,19 +40,24 @@ namespace PLCTool {
 
     void setParent(SubNet *parent);
     void setAllocNdx(int);
+    void setListNdx(int);
 
   protected:
+    NodeType eType;
     Node(SubNet *parent, NodeType, NodeId id);
 
   public:
     Node();
 
     int allocNdx(void) const;
+    int listNdx(void) const;
 
     // Getters first
     NodeType type(void) const;
     std::string const &name(void) const;
     NodeId id(void) const;
+    SubNet *top(void) const;
+    Node *topNode(void) const;
     SubNet *parent(void) const;
 
     // Setters
@@ -68,7 +74,9 @@ namespace PLCTool {
     bool
     isHub(void) const
     {
-      return this->eType == SWITCH || this->eType == CONCENTRATOR;
+      return this->eType == SWITCH
+           || this->eType == CONCENTRATOR
+           || this->eType == HUB;
     }
 
     std::string

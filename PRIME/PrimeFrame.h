@@ -78,6 +78,14 @@ namespace PLCTool {
       uint8_t AUK[16];
     };
 
+    struct PRO {
+      bool N, SWC_DC, SWC_MC, SWC_PRM, SWC_ARQ;
+      uint8_t RQ, TIME, NSID;
+      uint8_t PNA[6];
+      uint8_t UPCOST;
+      uint8_t DNCOST;
+    };
+
     struct BCN {
       uint8_t SID;
       uint8_t QLTY;
@@ -118,6 +126,9 @@ namespace PLCTool {
     std::vector<uint8_t> serializeREG(void) const;
     bool deserializeREG(struct prime13_reg_header *header, size_t size);
 
+    std::vector<uint8_t> serializePRO(void) const;
+    bool deserializePRO(struct prime13_pro_header *header, size_t size);
+
     std::vector<uint8_t> serializeCON(void) const;
     bool deserializeCON(struct prime13_con_header *header, size_t size);
 
@@ -132,6 +143,7 @@ namespace PLCTool {
     void printCON(std::string &) const;
     void printDATA(std::string &) const;
     void printREG(std::string &) const;
+    void printPRO(std::string &) const;
     void printGeneric(std::string &) const;
     void printBeacon(std::string &) const;
 
@@ -147,6 +159,7 @@ namespace PLCTool {
       struct CON CON;
       struct PKT PKT;
       struct REG REG;
+      struct PRO PRO;
       struct BCN BCN;
       struct CL  CL;
 

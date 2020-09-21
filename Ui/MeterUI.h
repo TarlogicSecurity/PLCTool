@@ -5,6 +5,7 @@
 #include <App/MeterInfo.h>
 #include "FrameTableModel.h"
 #include "DLMSTableModel.h"
+#include "CredInfoTableModel.h"
 #include <QSortFilterProxyModel>
 
 namespace Ui {
@@ -21,8 +22,11 @@ class MeterUI : public QWidget
   MeterInfo *info = nullptr;
   FrameTableModel *frameModel = nullptr;
   DLMSTableModel  *dlmsModel = nullptr;
+  CredInfoTableModel *credInfoModel = nullptr;
+
   QSortFilterProxyModel *frameProxy = nullptr;
   QSortFilterProxyModel *dlmsProxy = nullptr;
+  QSortFilterProxyModel *credInfoProxy = nullptr;
   XMLHighlighter *highlighter = nullptr;
 
   void connectAll(void);
@@ -44,15 +48,13 @@ public:
 public slots:
   void onFrame(Frame);
   void onDlmsMessage(DlmsMessage);
-  void onCreds(QString, QString);
+  void onCredInfo(CredInfo);
 
   void onFrameCellActivated(const QModelIndex &index);
   void onFrameCurrentChanged(QModelIndex, QModelIndex);
 
   void onDlmsCellActivated(const QModelIndex &index);
   void onDlmsCurrentChanged(QModelIndex, QModelIndex);
-
-  void onCredentialsFound(QDateTime, QString, QString);
 
 private:
     Ui::MeterUI *ui;

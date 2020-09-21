@@ -12,14 +12,17 @@
 
 #include <string>
 #include <cstdint>
-#include "Node.h"
+#include "Switch.h"
 
 namespace PLCTool {
-  class Meter : public Node {
+  class Meter : public Switch {
 
   public:
     Meter();
     Meter(SubNet *owner, NodeId id);
+
+    void promote(void);
+    void demote(void);
   };
 }
 

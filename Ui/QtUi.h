@@ -10,6 +10,7 @@
 #include "FrameLogUI.h"
 #include "DLMSLogUI.h"
 #include "MeterUI.h"
+#include "CredentialsUI.h"
 #include <QMap>
 
 #include <QElapsedTimer>
@@ -33,6 +34,8 @@ class QtUi : public QObject
 
   FrameLogUI *frameLogUi = nullptr;
   DLMSLogUI *dlmsLogUi = nullptr;
+  CredentialsUI *credentialsUi = nullptr;
+
   QElapsedTimer refreshTimer;
   QMap<PLCTool::NodeId, MeterUI *> meterUiMap;
 
@@ -65,13 +68,7 @@ public:
 
   void pushFrame(Frame const &);
   void pushDlmsMessage(DlmsMessage const &);
-
-  void pushCreds(
-      const PLCTool::Concentrator *dc,
-      QDateTime,
-      PLCTool::NodeId meter,
-      QString password,
-      QString conformance);
+  void pushCreds(CredInfo const &);
 
   void refreshViews(void);
 

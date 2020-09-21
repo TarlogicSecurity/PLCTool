@@ -24,11 +24,12 @@ class DLMSLogUI : public QWidget
   QSortFilterProxyModel *proxy = nullptr;
 
   QVector<DlmsMessage> messageList;
+  QVector<DlmsMessage> pendingList;
   QString savedText;
 
   XMLHighlighter *highlighter;
   bool adjusting = false;
-
+  bool sortingEnabled = false;
   void saveLog(QString path);
 
   void connectAll(void);
@@ -40,6 +41,7 @@ public:
   void refreshMessages(void);
   int findMessage(QDateTime const &);
   void selectNear(QDateTime const &, PLCTool::NodeId);
+  void setSortingEnabled(bool);
   void clear(void);
 
   ~DLMSLogUI();

@@ -7,10 +7,18 @@
 #include "DLMSProcessor.h"
 #include <QVector>
 
-struct CredInfo {
+class MeterInfo;
+
+struct CredInfo  {
+  MeterInfo *owner;
   QDateTime timeStamp;
   QString password;
-  QString context;
+  QStringList contexts;
+
+  CredInfo(CredInfo const &);
+  CredInfo();
+
+  static void registerTypes(void);
 };
 
 class MeterInfo : public QObject
@@ -26,17 +34,42 @@ class MeterInfo : public QObject
   QVector<DlmsMessage> messages;
   QVector<CredInfo> creds;
 
+  QVector<Frame> pendingFrames;
+  QVector<DlmsMessage> pendingMessages;
+  QVector<CredInfo> pendingCreds;
+
 public:
   explicit MeterInfo(QObject *parent, PLCTool::Meter *meter);
 
   void pushFrame(Frame const &);
   void pushDlmsMessage(DlmsMessage const &);
-  void pushCreds(QDateTime timeStamp, QString password, QString ctx);
+  CredInfo pushCreds(
+      QDateTime const &timeStamp,
+      QString const &password,
+      QStringList const &ctx);
+
+  inline QVector<CredInfo> *
+  pendingCredList(void)
+  {
+    return &this->pendingCreds;
+  }
 
   inline QVector<CredInfo> *
   credList(void)
   {
     return &this->creds;
+  }
+
+  inline void
+  commitCreds(void)
+  {
+    this->pendingCreds.clear();
+  }
+
+  inline QVector<Frame> *
+  pendingFrameList(void)
+  {
+    return &this->pendingFrames;
   }
 
   inline QVector<Frame> *
@@ -45,10 +78,28 @@ public:
     return &this->frames;
   }
 
+  inline void
+  commitFrames(void)
+  {
+    this->pendingFrames.clear();
+  }
+
+  inline QVector<DlmsMessage> *
+  pendingMessageList(void)
+  {
+    return &this->pendingMessages;
+  }
+
   inline QVector<DlmsMessage> *
   messageList(void)
   {
     return &this->messages;
+  }
+
+  inline void
+  commitMessages(void)
+  {
+    this->pendingMessages.clear();
   }
 
   inline PLCTool::Meter *
@@ -66,7 +117,7 @@ public:
 signals:
   void messageReceived(DlmsMessage);
   void frameReceived(Frame);
-  void credentialsFound(QDateTime, QString, QString);
+  void credentialsFound(CredInfo);
 
 public slots:
 };

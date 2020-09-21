@@ -71,6 +71,9 @@ TopologyModel::index(int row, int column, const QModelIndex &parent) const
     return QModelIndex();
   }
   // Root element. Querying entry in subnet
+
+  net = this->net;
+
   if (!parent.isValid()) {
     net = this->net;
   } else {
@@ -85,10 +88,10 @@ TopologyModel::index(int row, int column, const QModelIndex &parent) const
 
   if (net == nullptr
         || row < 0
-        || static_cast<unsigned>(row) >= net->length()) {
+        || static_cast<unsigned>(row) >= net->listCount()) {
     return QModelIndex();
   }
-  index =  createIndex(row, column, net->nodeAt(row));
+  index =  createIndex(row, column, net->listNodeAt(row));
 
   return index;
 }
@@ -110,14 +113,11 @@ TopologyModel::parent(const QModelIndex &index) const
 
   PLCTool::SubNet *sn = current->parent();
 
-  if (sn == nullptr) {
-    return QModelIndex();
-  }
-  if (sn->parent() == nullptr) {
+  if (sn == nullptr || sn->parent() == nullptr) {
     return QModelIndex();
   }
 
-  newIndex = createIndex(sn->parent()->allocNdx(), 0, sn->parent());
+  newIndex = createIndex(sn->parent()->listNdx(), 0, sn->parent());
 
   return newIndex;
 }
@@ -129,13 +129,12 @@ TopologyModel::rowCount(const QModelIndex &parent) const
 
 
   if (!parent.isValid())   // Root?
-    return this->net == nullptr ? 0 : this->net->length();
+    return this->net == nullptr ? 0 : this->net->listCount();
 
-  if (current->type() == PLCTool::NodeType::SWITCH
-      || current->type() == PLCTool::NodeType::CONCENTRATOR) {
+  if (current->isHub()) {
     PLCTool::Hub *asHub = static_cast<PLCTool::Hub *>(current);
 
-    return asHub->subNet().length();
+    return asHub->subNet().listCount();
   }
 
   return 0;
@@ -183,23 +182,22 @@ TopologyModel::data(const QModelIndex &index, int role) const
     case Qt::DisplayRole:
       switch (current->type()) {
         PLCTool::Meter *asMeter;
-        PLCTool::Switch *asSwitch;
         PLCTool::Concentrator *asDc;
 
         case PLCTool::NodeType::UNDEFINED:
           return QVariant::fromValue(QString("UNDEFINED"));
           break;
 
-        case PLCTool::NodeType::METER:
+        case PLCTool::NodeType::HUB:
           asMeter = static_cast<PLCTool::Meter *>(current);
           if (index.column() == 0) {
             return QVariant::fromValue(
-                  QString().sprintf("NID: %06lx", asMeter->id()));
+                  QString::asprintf("SWITCH %02x", asMeter->subNet().netId()));
           } else if (index.column() == 1) {
             if (asMeter->name().size() > 0)
               return QString::fromStdString(asMeter->name());
             else
-              return "(unnamed meter)";
+              return "(unseen switch)";
           } else if (index.column() == 2) {
             if (asMeter->macAddr().size() > 0)
               return QString::fromStdString(asMeter->macAddr());
@@ -208,16 +206,25 @@ TopologyModel::data(const QModelIndex &index, int role) const
           }
           break;
 
+        case PLCTool::NodeType::METER:
         case PLCTool::NodeType::SWITCH:
-          asSwitch = static_cast<PLCTool::Switch *>(current);
+          asMeter = static_cast<PLCTool::Meter *>(current);
           if (index.column() == 0) {
-            return QVariant::fromValue(
-                  QString().sprintf("NID: %06lx", asSwitch->id()));
+            return current->type() == PLCTool::NodeType::SWITCH
+                ? QVariant::fromValue(
+                    QString::asprintf(
+                      "SWITCH %02x (%06lx)",
+                      asMeter->subNet().netId(),
+                      asMeter->id()))
+                : QVariant::fromValue(
+                    QString::asprintf("LNID: %06lx", asMeter->id()));
           } else if (index.column() == 1) {
             if (asMeter->name().size() > 0)
               return QString::fromStdString(asMeter->name());
             else
-              return "(unnamed switch)";
+              return current->type() == PLCTool::NodeType::SWITCH
+                  ? "(unnamed switch)"
+                  : "(unnamed meter)";
           } else if (index.column() == 2) {
             if (asMeter->macAddr().size() > 0)
               return QString::fromStdString(asMeter->macAddr());
@@ -229,7 +236,8 @@ TopologyModel::data(const QModelIndex &index, int role) const
         case PLCTool::NodeType::CONCENTRATOR:
           asDc = static_cast<PLCTool::Concentrator *>(current);
           if (index.column() == 0) {
-            return QVariant::fromValue(QString().sprintf("SNA: %06lx", asDc->id()));
+            return QVariant::fromValue(
+                  QString::asprintf("SNA: %06lx", asDc->id()));
           } else if (index.column() == 1) {
             return "(unnamed DC)";
           } else if (index.column() == 2) {
