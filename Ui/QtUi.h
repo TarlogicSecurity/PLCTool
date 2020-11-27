@@ -10,6 +10,7 @@
 #include "FrameLogUI.h"
 #include "DLMSLogUI.h"
 #include "MeterUI.h"
+#include "TranslatorUI.h"
 #include "CredentialsUI.h"
 #include <QMap>
 
@@ -35,7 +36,7 @@ class QtUi : public QObject
   FrameLogUI *frameLogUi = nullptr;
   DLMSLogUI *dlmsLogUi = nullptr;
   CredentialsUI *credentialsUi = nullptr;
-
+  TranslatorUI *translatorUi = nullptr;
   QElapsedTimer refreshTimer;
   QMap<PLCTool::NodeId, MeterUI *> meterUiMap;
 
@@ -58,13 +59,9 @@ public:
   void setAdapter(PLCTool::Adapter *);
   void notifyTopologyChange(void);
 
-  void openFrameLog(void);
-  void openCredsLog(void);
-  void openDlmsLog(void);
-  void openTranslator(void);
-
   void openMeterInfoView(MeterInfo *);
   void closeAllMeterInfo(void);
+  void openFrameLog(void);
 
   void pushFrame(Frame const &);
   void pushDlmsMessage(DlmsMessage const &);
@@ -85,10 +82,16 @@ signals:
 public slots:
   void onLoadFile(void);
   void onToggleStart(void);
+  void onToggleFrameLog(bool);
+  void onToggleMessageLog(bool);
+  void onToggleCredentialsLog(bool);
+  void onToggleTranslator(bool);
   void onOpenConfig(void);
   void onSelectFrame(Frame &);
   void onSelectDlmsMessage(DlmsMessage &);
   void onRejectLoading(void);
+  void onCloseSubWindow(QString);
+
 };
 
 #endif // UI_UI_H

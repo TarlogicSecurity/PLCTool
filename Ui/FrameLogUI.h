@@ -46,6 +46,7 @@ public:
       PLCTool::NodeId);
   void clear(void);
   void setSortingEnabled(bool);
+  void realize(void);
 
   ~FrameLogUI();
 

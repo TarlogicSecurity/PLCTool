@@ -465,6 +465,7 @@ Application::onOpenAdapter(void)
 {
   if (this->openAdapter(this->ui->modemPath(), this->ui->modemBaud())) {
     this->clearMeterInfo();
+    this->ui->openFrameLog();
     this->ui->setLoading(false);
     this->ui->setAdapter(static_cast<PLCTool::Adapter *>(this->adapter));
   }
@@ -475,6 +476,7 @@ Application::onOpenLogFile(QString path)
 {
   if (this->loadLogFile(path)) {
     this->clearMeterInfo();
+    this->ui->openFrameLog();
     this->ui->setCounters(0, 0);
     this->ui->setLoading(true);
     this->ui->setAdapter(static_cast<PLCTool::Adapter *>(this->adapter));

@@ -48,6 +48,30 @@ MainWindow::connectAll(void)
         SIGNAL(loadFile()));
 
   connect(
+        this->ui->actionFrame_logger,
+        SIGNAL(toggled(bool)),
+        this,
+        SIGNAL(toggleFrameLog(bool)));
+
+  connect(
+        this->ui->actionMessage_logger,
+        SIGNAL(toggled(bool)),
+        this,
+        SIGNAL(toggleMessageLog(bool)));
+
+  connect(
+        this->ui->actionCredentials,
+        SIGNAL(toggled(bool)),
+        this,
+        SIGNAL(toogleCredentialsLog(bool)));
+
+  connect(
+        this->ui->actionDLMS_Translator,
+        SIGNAL(toggled(bool)),
+        this,
+        SIGNAL(toggleTranslator(bool)));
+
+  connect(
         this->ui->topologyView,
         SIGNAL(activated(QModelIndex)),
         this,
@@ -88,10 +112,18 @@ MainWindow::closeWindow(QString const &name)
 {
   QMdiSubWindow *window = this->findWindow(name);
 
-  if (window != nullptr)
+  if (window == nullptr)
     return false;
 
-  return window->close();
+  if (window->close()) {
+    this->ui->mdiArea->removeSubWindow(window);
+    window->widget()->setParent(nullptr);
+    window->deleteLater();
+    this->windowMap[name] = nullptr;
+    return true;
+  }
+
+  return false;
 }
 
 QSaneMdiSubWindow *
@@ -119,6 +151,29 @@ void
 MainWindow::setConnectState(bool state)
 {
   this->ui->actionConnect->setChecked(state);
+}
+
+void
+MainWindow::setButtonState(Button btn, bool state)
+{
+  switch (btn) {
+    case MAIN_WINDOW_BUTTON_FRAME_LOG:
+      this->ui->actionFrame_logger->setChecked(state);
+      break;
+
+    case MAIN_WINDOW_BUTTON_MESSAGE_LOG:
+      this->ui->actionMessage_logger->setChecked(state);
+      break;
+
+    case MAIN_WINDOW_BUTTON_CREDENTIALS_LOG:
+      this->ui->actionCredentials->setChecked(state);
+      break;
+
+    case MAIN_WINDOW_BUTTON_TRANSLATOR:
+      this->ui->actionDLMS_Translator->setChecked(state);
+      break;
+
+  }
 }
 
 void

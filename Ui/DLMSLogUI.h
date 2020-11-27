@@ -31,7 +31,6 @@ class DLMSLogUI : public QWidget
   bool adjusting = false;
   bool sortingEnabled = false;
   void saveLog(QString path);
-
   void connectAll(void);
 
 public:
@@ -43,6 +42,7 @@ public:
   void selectNear(QDateTime const &, PLCTool::NodeId);
   void setSortingEnabled(bool);
   void clear(void);
+  void realize(void);
 
   ~DLMSLogUI();
 
