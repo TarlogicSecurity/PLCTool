@@ -87,8 +87,17 @@
      <height>22</height>
     </rect>
    </property>
+   <property name="defaultUp">
+    <bool>false</bool>
+   </property>
+   <property name="nativeMenuBar">
+    <bool>true</bool>
+   </property>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="toolButtonStyle">
     <enum>Qt::ToolButtonTextUnderIcon</enum>
    </property>
@@ -100,7 +109,10 @@
    </attribute>
    <addaction name="actionConnect"/>
    <addaction name="actionLoad"/>
+   <addaction name="actionFrame_logger"/>
+   <addaction name="actionMessage_logger"/>
    <addaction name="actionCredentials"/>
+   <addaction name="actionDLMS_Translator"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
   </widget>
@@ -130,12 +142,15 @@
    </property>
   </action>
   <action name="actionCredentials">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="icon">
     <iconset resource="../icons.qrc">
-     <normaloff>:/Icons/history.png</normaloff>:/Icons/history.png</iconset>
+     <normaloff>:/Icons/passwords.png</normaloff>:/Icons/passwords.png</iconset>
    </property>
    <property name="text">
     <string>Credentials</string>
@@ -148,6 +163,42 @@
    </property>
    <property name="text">
     <string>Load</string>
+   </property>
+  </action>
+  <action name="actionFrame_logger">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../icons.qrc">
+     <normaloff>:/Icons/frames.png</normaloff>:/Icons/frames.png</iconset>
+   </property>
+   <property name="text">
+    <string>Frames</string>
+   </property>
+  </action>
+  <action name="actionMessage_logger">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../icons.qrc">
+     <normaloff>:/Icons/messages.png</normaloff>:/Icons/messages.png</iconset>
+   </property>
+   <property name="text">
+    <string>Messages</string>
+   </property>
+  </action>
+  <action name="actionDLMS_Translator">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../icons.qrc">
+     <normaloff>:/Icons/file-xml.png</normaloff>:/Icons/file-xml.png</iconset>
+   </property>
+   <property name="text">
+    <string>Translate</string>
    </property>
   </action>
  </widget>

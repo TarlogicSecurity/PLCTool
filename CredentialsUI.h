@@ -37,6 +37,7 @@ public:
   void refreshCredentials(void);
   void setSortingEnabled(bool);
   void clear(void);
+  void realize(void);
 
 public slots:
   void onSaveAs(bool);

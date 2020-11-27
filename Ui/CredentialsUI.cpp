@@ -25,6 +25,12 @@ CredentialsUI::CredentialsUI(QWidget *parent) :
 }
 
 void
+CredentialsUI::realize(void)
+{
+  this->proxy->sort(0, Qt::AscendingOrder);
+}
+
+void
 CredentialsUI::connectAll(void)
 {
   connect(

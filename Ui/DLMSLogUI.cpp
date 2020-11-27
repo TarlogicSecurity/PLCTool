@@ -188,6 +188,11 @@ DLMSLogUI::setSortingEnabled(bool enabled)
   this->ui->messageView->setSortingEnabled(enabled);
 }
 
+void
+DLMSLogUI::realize(void)
+{
+   this->proxy->sort(0, Qt::AscendingOrder);
+}
 
 DLMSLogUI::DLMSLogUI(QWidget *parent) :
   QWidget(parent),

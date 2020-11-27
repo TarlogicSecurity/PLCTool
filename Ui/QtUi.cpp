@@ -16,15 +16,14 @@ QtUi::QtUi(QObject *parent) : QObject(parent)
   this->modemDialog = new ModemDialog(nullptr);
   this->loadingDialog = new LoadingStatusDialog(nullptr);
   this->loadingDialog->setWindowTitle("Loading frames from file");
+  this->frameLogUi = new FrameLogUI;
+  this->dlmsLogUi = new DLMSLogUI;
+  this->credentialsUi = new CredentialsUI;
+  this->translatorUi = new TranslatorUI;
 
   this->refreshTimer.start();
 
   this->connectAll();
-
-  this->openFrameLog();
-  this->openCredsLog();
-  this->openDlmsLog();
-  this->openTranslator();
 }
 
 void
@@ -59,6 +58,42 @@ QtUi::connectAll(void)
         SIGNAL(openMeterInfo(PLCTool::Meter*)),
         this,
         SIGNAL(openMeterInfo(PLCTool::Meter*)));
+
+  connect(
+        this->frameLogUi,
+        SIGNAL(frameSelected(Frame &)),
+        this,
+        SLOT(onSelectFrame(Frame &)));
+
+  connect(
+        this->mainWindow,
+        SIGNAL(toggleFrameLog(bool)),
+        this,
+        SLOT(onToggleFrameLog(bool)));
+
+  connect(
+        this->mainWindow,
+        SIGNAL(toggleMessageLog(bool)),
+        this,
+        SLOT(onToggleMessageLog(bool)));
+
+  connect(
+        this->mainWindow,
+        SIGNAL(toogleCredentialsLog(bool)),
+        this,
+        SLOT(onToggleCredentialsLog(bool)));
+
+  connect(
+        this->mainWindow,
+        SIGNAL(toggleTranslator(bool)),
+        this,
+        SLOT(onToggleTranslator(bool)));
+
+  connect(
+        this->mainWindow,
+        SIGNAL(closeSubWindow(QString)),
+        this,
+        SLOT(onCloseSubWindow(QString)));
 }
 
 void
@@ -66,14 +101,11 @@ QtUi::breathe(void)
 {
   if (this->refreshTimer.elapsed() > 100) {
     QCoreApplication::processEvents();
-    if (this->frameLogUi != nullptr)
-      this->frameLogUi->refreshFrames();
+    this->frameLogUi->refreshFrames();
 
-    if (this->dlmsLogUi != nullptr)
-      this->dlmsLogUi->refreshMessages();
+    this->dlmsLogUi->refreshMessages();
 
-    if (this->credentialsUi != nullptr)
-      this->credentialsUi->refreshCredentials();
+    this->credentialsUi->refreshCredentials();
 
     if (this->parsedFrameCounter == 0
         && this->totalFrameCounter > 0) {
@@ -104,14 +136,9 @@ QtUi::~QtUi()
 void
 QtUi::setLoading(bool state)
 {
-  if (this->frameLogUi != nullptr)
-    this->frameLogUi->setSortingEnabled(!state);
-
-  if (this->dlmsLogUi != nullptr)
-    this->dlmsLogUi->setSortingEnabled(!state);
-
-  if (this->credentialsUi != nullptr)
-    this->credentialsUi->setSortingEnabled(!state);
+  this->frameLogUi->setSortingEnabled(!state);
+  this->dlmsLogUi->setSortingEnabled(!state);
+  this->credentialsUi->setSortingEnabled(!state);
 
   if (state)
     this->loadingDialog->show();
@@ -192,7 +219,7 @@ QtUi::openMeterInfoView(MeterInfo *info)
             "Meter information: " + info->meter()->name());
     else
       title = "Meter information: "
-          + QString().sprintf(
+          + QString().asprintf(
             "%06llx",
             static_cast<quint64>(info->meter()->id()));
 
@@ -202,90 +229,18 @@ QtUi::openMeterInfoView(MeterInfo *info)
 }
 
 void
-QtUi::openFrameLog(void)
-{
-  if (this->mainWindow->findWindow("FrameLog") == nullptr) {
-    FrameLogUI *ui = new FrameLogUI;
-    (void) this->mainWindow->openWindow("FrameLog", "Frame logger", ui);
-
-    connect(
-          ui,
-          SIGNAL(frameSelected(Frame &)),
-          this,
-          SLOT(onSelectFrame(Frame &)));
-  }
-}
-
-void
-QtUi::openCredsLog(void)
-{
-  if (this->mainWindow->findWindow("CredsLog") == nullptr) {
-    (void) this->mainWindow->openWindow(
-          "CredsLog",
-          "Credential logger",
-          new CredentialsUI);
-  }
-}
-
-void
-QtUi::openDlmsLog(void)
-{
-  if (this->mainWindow->findWindow("DlmsLog") == nullptr) {
-    DLMSLogUI *ui = new DLMSLogUI;
-
-    (void) this->mainWindow->openWindow(
-          "DlmsLog",
-          "DLMS Message Logger",
-          ui);
-
-    connect(
-          ui,
-          SIGNAL(messageSelected(DlmsMessage &)),
-          this,
-          SLOT(onSelectDlmsMessage(DlmsMessage &)));
-  }
-}
-
-void
-QtUi::openTranslator(void)
-{
-  if (this->mainWindow->findWindow("DlmsTranslator") == nullptr) {
-    (void) this->mainWindow->openWindow(
-          "DlmsTranslator",
-          "DLMS Translator",
-          new TranslatorUI);
-  }
-}
-
-
-void
 QtUi::pushFrame(Frame const &frame)
 {
-  if (this->frameLogUi == nullptr) {
-    QSaneMdiSubWindow *sw = this->mainWindow->findWindow("FrameLog");
-
-    if (sw != nullptr)
-      this->frameLogUi = static_cast<FrameLogUI *>(sw->widget());
-  }
-
-  if (this->frameLogUi != nullptr) {
-    this->frameLogUi->saveFrame(frame);
-
-    this->breathe();
-  }
+  this->frameLogUi->saveFrame(frame);
+  this->breathe();
 }
 
 void
 QtUi::refreshViews(void)
 {
-  if (this->frameLogUi != nullptr)
-    this->frameLogUi->refreshFrames();
-
-  if (this->dlmsLogUi != nullptr)
-    this->dlmsLogUi->refreshMessages();
-
-  if (this->credentialsUi != nullptr)
-    this->credentialsUi->refreshCredentials();
+  this->frameLogUi->refreshFrames();
+  this->dlmsLogUi->refreshMessages();
+  this->credentialsUi->refreshCredentials();
 
   for (auto p : this->meterUiMap)
     p->refreshViews();
@@ -294,33 +249,15 @@ QtUi::refreshViews(void)
 void
 QtUi::pushDlmsMessage(DlmsMessage const &message)
 {
-  if (this->dlmsLogUi == nullptr) {
-    QSaneMdiSubWindow *sw = this->mainWindow->findWindow("DlmsLog");
-
-    if (sw != nullptr)
-      this->dlmsLogUi = static_cast<DLMSLogUI *>(sw->widget());
-  }
-
-  if (this->dlmsLogUi != nullptr) {
-    this->dlmsLogUi->saveMessage(message);
-    this->breathe();
-  }
+  this->dlmsLogUi->saveMessage(message);
+  this->breathe();
 }
 
 void
 QtUi::pushCreds(CredInfo const &info)
 {
-  if (this->credentialsUi == nullptr) {
-    QSaneMdiSubWindow *sw = this->mainWindow->findWindow("CredsLog");
-
-    if (sw != nullptr)
-      this->credentialsUi = static_cast<CredentialsUI *>(sw->widget());
-  }
-
-  if (this->credentialsUi != nullptr) {
-    this->credentialsUi->saveCreds(info);
-    this->breathe();
-  }
+  this->credentialsUi->saveCreds(info);
+  this->breathe();
 }
 
 QString
@@ -405,6 +342,98 @@ QtUi::onLoadFile(void)
     if (list.size() > 0)
       emit openLogFile(list.at(0));
   }
+}
+
+void
+QtUi::openFrameLog(void)
+{
+  this->mainWindow->setButtonState(
+        MainWindow::MAIN_WINDOW_BUTTON_FRAME_LOG,
+        true);
+  this->onToggleFrameLog(true);
+}
+
+void
+QtUi::onToggleFrameLog(bool open)
+{
+  QString windowName = "FrameLog";
+
+  if (open) {
+    (void) this->mainWindow->openWindow(
+          windowName,
+          "Frame logger",
+          this->frameLogUi);
+    this->frameLogUi->realize();
+  } else {
+    (void) this->mainWindow->closeWindow(windowName);
+  }
+}
+
+void
+QtUi::onToggleMessageLog(bool open)
+{
+  QString windowName = "DlmsLog";
+
+  if (open) {
+    (void) this->mainWindow->openWindow(
+          windowName,
+          "DLMS Message logger",
+          this->dlmsLogUi);
+    this->dlmsLogUi->realize();
+  } else {
+    (void) this->mainWindow->closeWindow(windowName);
+  }
+}
+
+void
+QtUi::onToggleCredentialsLog(bool open)
+{
+  QString windowName = "CredsLog";
+
+  if (open) {
+    (void) this->mainWindow->openWindow(
+          windowName,
+          "Credential logger",
+          this->credentialsUi);
+    this->credentialsUi->realize();
+  } else {
+    (void) this->mainWindow->closeWindow(windowName);
+  }
+}
+
+void
+QtUi::onToggleTranslator(bool open)
+{
+  QString windowName = "Translator";
+
+  if (open)
+    (void) this->mainWindow->openWindow(
+          windowName,
+          "DLMS Translator",
+          this->translatorUi);
+  else
+    (void) this->mainWindow->closeWindow(windowName);
+}
+
+void
+QtUi::onCloseSubWindow(QString windowName)
+{
+  if (windowName == "FrameLog")
+    this->mainWindow->setButtonState(
+        MainWindow::MAIN_WINDOW_BUTTON_FRAME_LOG,
+        false);
+  else if (windowName == "DlmsLog")
+    this->mainWindow->setButtonState(
+        MainWindow::MAIN_WINDOW_BUTTON_MESSAGE_LOG,
+        false);
+  else if (windowName == "CredsLog")
+    this->mainWindow->setButtonState(
+        MainWindow::MAIN_WINDOW_BUTTON_CREDENTIALS_LOG,
+        false);
+  else if (windowName == "Translator")
+    this->mainWindow->setButtonState(
+        MainWindow::MAIN_WINDOW_BUTTON_TRANSLATOR,
+        false);
 }
 
 void

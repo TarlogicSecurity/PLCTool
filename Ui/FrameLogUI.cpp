@@ -142,6 +142,12 @@ FrameLogUI::clear(void)
 }
 
 void
+FrameLogUI::realize(void)
+{
+  this->proxy->sort(0, Qt::AscendingOrder);
+}
+
+void
 FrameLogUI::saveFrame(Frame const &frame)
 {
   this->pendingList.append(frame);
