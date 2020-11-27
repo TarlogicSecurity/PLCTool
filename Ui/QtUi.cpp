@@ -289,7 +289,9 @@ QtUi::onToggleStart(void)
       else
         this->firstConnection = false;
     }
-    emit openAdapter();
+
+    if (this->mainWindow->connectState())
+      emit openAdapter();
   } else {
     emit closeAdapter();
   }
