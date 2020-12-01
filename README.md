@@ -22,4 +22,18 @@ And if the build was successful, you can simply run it with:
 ```
 
 ## Using it with ATPL360-EK
-In order to communicate with the ATPL360-EK, you will need to build and install the [Candleblow](https://github.com/TarlogicSecurity/Candleblow) firmware in it with **ATMEL Studio 7.0** and a cheap 20-pin ARM JTAG programmer [like this](https://www.amazon.es/Gen%C3%A9rico-depurador-soporte-Ortex-M3-reemplazo/dp/B086RJZXGJ/ref=sr_1_2?__mk_es_ES=%C3%85M%C3%85%C5%BD%C3%95%C3%91&dchild=1&keywords=Jtag+Usb+arm&qid=1606854930&sr=8-2).  All these steps can be performed directly from ATMEL Studio 7.0
+In order to communicate with the ATPL360-EK, you will need to build and install the [Candleblow](https://github.com/TarlogicSecurity/Candleblow) firmware in it with **ATMEL Studio 7.0** and a cheap 20-pin ARM JTAG programmer [like this](https://www.amazon.es/Gen%C3%A9rico-depurador-soporte-Ortex-M3-reemplazo/dp/B086RJZXGJ/ref=sr_1_2?__mk_es_ES=%C3%85M%C3%85%C5%BD%C3%95%C3%91&dchild=1&keywords=Jtag+Usb+arm&qid=1606854930&sr=8-2).  All these steps can be performed directly from ATMEL Studio 7.0.
+
+Once Candleblow is properly installed, plug it to your nearest AC adapter and the USB UART0 to your computer with the provided USB cable. No drivers will be needed here, Linux will detect the board as a USB-based serial port and expose it in `/dev`. The first step of course is to locate the device name. It may take names like `/dev/ttyACM0` or `/dev/ttyUSB0` depending on your particular GNU/Linux distribution and the number of existing serial devices connected to your computer:
+
+![](https://raw.githubusercontent.com/TarlogicSecurity/PLCTool/main/doc/plctool1.png)
+
+Remember this device name and make sure you have both read and write access to it (if you don't, you may change this the quick and dirty way with `sudo chmod a+rw`). Now open PLCTool and click on connect. You should see the following dialog:
+
+![](https://raw.githubusercontent.com/TarlogicSecurity/PLCTool/main/doc/plctool2.png)
+
+Enter the full device path and press Connect. After a few seconds (or even less, depending on the number of surrounding meters around you) you should be able to capture a few (probably unencrypted) PRIME frames.
+
+![](https://raw.githubusercontent.com/TarlogicSecurity/PLCTool/main/doc/plctool3.png)
+
+Leave it running during a full 24-hour cycle and click on the Credential Logger button. If the PRIME you are in is not particularly secure, you may be able to see a few low-level-security DLMS passwords in the credential logger.
