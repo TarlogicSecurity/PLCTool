@@ -22,4 +22,4 @@ And if the build was successful, you can simply run it with:
 ```
 
 ## Using it with ATPL360-EK
-In order to communicate with the ATPL360-EK, you will need to build and install the **Candleblow** firmware in it with **ATMEL Studio 7.0** and a cheap 20-pin ARM JTAG programmer.  All these steps can be performed directly from ATMEL Studio 7.0
+In order to communicate with the ATPL360-EK, you will need to build and install the [Candleblow](https://github.com/TarlogicSecurity/Candleblow) firmware in it with **ATMEL Studio 7.0** and a cheap 20-pin ARM JTAG programmer [like this](https://www.amazon.es/Gen%C3%A9rico-depurador-soporte-Ortex-M3-reemplazo/dp/B086RJZXGJ/ref=sr_1_2?__mk_es_ES=%C3%85M%C3%85%C5%BD%C3%95%C3%91&dchild=1&keywords=Jtag+Usb+arm&qid=1606854930&sr=8-2).  All these steps can be performed directly from ATMEL Studio 7.0
