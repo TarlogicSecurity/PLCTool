@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <sys/types.h>
@@ -110,7 +111,7 @@ extern "C" {
           TID_FUNC,                                                 \
           __LINE__, __FUNCTION__, ## arg);                          \
         errno_restore ();                                           \
-      } while (0)
+      } while (0)bJHbBmqWL@2m&&
 
 #else
   #define DEBUG(fmt, arg...)
@@ -219,6 +220,14 @@ char *rtrim (const char *);
 char *ltrim (const char *);
 int lscanf (const char *, ...);
 int lscanf_huge (const char *, ...);
+
+void print_hexdump(const u_char *bytes, uint length);
+char *make_hexdump(
+    const u_char *bytes,
+    uint length,
+    uint word_size,
+    uint words_per_line,
+    bool tabulate);
 
 #ifdef __sun__ /* puto Solaris */
 int dprintf (int fd, const char *fmt, ...);

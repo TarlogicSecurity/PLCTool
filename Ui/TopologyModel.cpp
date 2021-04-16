@@ -240,13 +240,12 @@ TopologyModel::data(const QModelIndex &index, int role) const
           asMeter = static_cast<PLCTool::Meter *>(current);
           if (index.column() == 0) {
             return current->type() == PLCTool::NodeType::SWITCH
-                ? QVariant::fromValue(
-                    QString::asprintf(
-                      "SWITCH %02x (%06lx)",
-                      asMeter->subNet().netId(),
-                      asMeter->id()))
-                : QVariant::fromValue(
-                    QString::asprintf("LNID: %06lx", asMeter->id()));
+                       ? QVariant::fromValue(QString::asprintf(
+                             "SWITCH %02x (%06lx)",
+                             asMeter->subNet().netId(),
+                             asMeter->id()))
+                       : QVariant::fromValue(
+                             QString::asprintf("NID: %06lx", asMeter->id()));
           } else if (index.column() == 1) {
             if (asMeter->name().size() > 0)
               return QString::fromStdString(asMeter->name());

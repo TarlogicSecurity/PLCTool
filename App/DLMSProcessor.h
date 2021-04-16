@@ -30,9 +30,10 @@
 #ifndef DLMSPROCESSOR_H
 #define DLMSPROCESSOR_H
 
-#include <QObject>
+#include <App/DLMSTranslator.h>
 #include <PRIME/PrimeAdapter.h>
-#include <GXDLMSTranslator.h>
+
+#include <QObject>
 #include <QVector>
 
 struct DlmsMessage {
@@ -48,15 +49,15 @@ struct DlmsMessage {
   QString toText(void) const;
 };
 
-
 class DLMSProcessor : public QObject
 {
   Q_OBJECT
 
-  CGXDLMSTranslator translator;
+  DLMSTranslator *translator;
 
-public:
+ public:
   explicit DLMSProcessor(QObject *parent = 0);
+  ~DLMSProcessor(void);
 
   static void registerTypes(void);
 

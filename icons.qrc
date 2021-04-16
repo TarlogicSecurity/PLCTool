@@ -4,9 +4,22 @@
         <file>Icons/connect_no.png</file>
         <file>Icons/fileimport.png</file>
         <file>Icons/history.png</file>
+        <file>Icons/close.png</file>
+        <file>Icons/start.png</file>
+        <file>Icons/pause.png</file>
+        <file>Icons/associate.png</file>
+        <file>Icons/register.png</file>
         <file>Icons/file-xml.png</file>
         <file>Icons/messages.png</file>
         <file>Icons/frames.png</file>
         <file>Icons/passwords.png</file>
+        <file>Icons/Tarlogic/Tarlogic-0.png</file>
+        <file>Icons/Tarlogic/Tarlogic-1.png</file>
+        <file>Icons/Tarlogic/Tarlogic-2.png</file>
+        <file>Icons/Tarlogic/Tarlogic-3.png</file>
+        <file>Icons/Tarlogic/Tarlogic-4.png</file>
+        <file>Icons/Tarlogic/Tarlogic-5.png</file>
+        <file>Icons/Tarlogic/Tarlogic-6.png</file>
+        <file>Icons/Tarlogic/Tarlogic-7.png</file>
     </qresource>
 </RCC>

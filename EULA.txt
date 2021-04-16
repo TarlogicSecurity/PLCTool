@@ -1,0 +1,17 @@
+IMPORTANT - READ CAREFULLY: This End-User License Agreement (EULA) is a legal agreement between YOU (either an individual or a single entity) and Tarlogic Security SL (from now on referred as Tarlogic), having a principal place of business at Travesía de Montouto, 1, bajo, ZIP Code 15894, Teo (La Coruña), Spain. These Conditions shall be construed, interpreted and governed in all respects in accordance with the laws of the Kingdom of Spain and the European Union.
+
+Notice of use and agreement:
+By using PLCTool or any modification of the program you agree to this EULA. PLCTool is provided as a research tool to be used in accordance with the law on your equipment or equipment on which you are authorized to interact and at your own risk. Please inform yourself about the legality of any action you may take enabled by the use of (or any other activity related to) PLCTool.
+
+Limitation of liability:
+To the maximum extent permitted by applicable law, in no event shall TARLOGIC, its suppliers, any copyright holder, or any other party who modifies and/or conveys PLCTool be liable for any special, incidental, indirect, or consequential damages whatsoever (including, without limitation, damages for loss of business profits, business interruption, loss of business information, or any other pecuniary loss) arising out of the use of or inability to use the PLCTool application, even if TARLOGIC has been advised of the possibility of such damages. Because some jurisdictions do not allow the exclusion or limitation of liability for consequential or incidental damages, the above limitation may not apply to you.
+TARLOGIC has no liability for any kinds of disputes between YOU and any third parties with respect to the Software including, those based on accused infringement of intellectual property rights of any third party.
+
+Terms of arbitration:
+In the event any dispute, controversy or difference arises out of these Conditions between YOU and TARLOGIC, both parties will endeavor to settle such dispute, controversy or difference amicably. In the event that both parties fail to agree, any such dispute, controversy and difference shall be finally settled by arbitration in SPAIN under and in accordance with the Commercial Arbitration Rules of Spain.
+
+Copyright notice:
+The copyright and any intellectual property rights relating to PLCTOOL shall be retained by each of the copyright owners, including TARLOGIC, based on GPL, and shall not be transferred to YOU. The PLCTOOL PRODUCT is protected by copyright laws and international treaty provisions. Therefore, you must treat the PLCTOOL PRODUCT like any other copyrighted material according to its licensing.
+
+Other terms:
+With respect to this Software GNU General Public License "GPL" shall apply. YOU may, therefore, copy, modify and re-distribute the Software in accordance with the GPL. Please see to obtain the conditions of GPL; "Free Software Foundation, GNU General Public License” https://www.gnu.org/licenses/.

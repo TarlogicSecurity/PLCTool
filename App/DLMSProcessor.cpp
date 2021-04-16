@@ -28,7 +28,11 @@
 //
 
 #include "DLMSProcessor.h"
+
+#include <App/GXDLMSTranslatorInterface.h>
 #include <dlms/dlmsmsg.h>
+
+#include <vector>
 
 Q_DECLARE_METATYPE(DlmsMessage)
 Q_DECLARE_METATYPE(DlmsMessage *)
@@ -54,10 +58,17 @@ DlmsMessage::toText(void) const
 
 ///////////////////////////////////////////////////////////////////////////////
 
-DLMSProcessor::DLMSProcessor(QObject *parent) :
-  QObject(parent), translator(DLMS_TRANSLATOR_OUTPUT_TYPE_SIMPLE_XML)
+DLMSProcessor::DLMSProcessor(QObject *parent) : QObject(parent)
 {
-  this->translator.SetComments(true);
+  this->translator =
+      new GXDLMSTranslatorInterface(DLMS_TRANSLATOR_OUTPUT_TYPE_SIMPLE_XML);
+  this->translator->SetComments(true);
+}
+
+DLMSProcessor::~DLMSProcessor(void)
+{
+  if (this->translator)
+    delete this->translator;
 }
 
 void
@@ -79,7 +90,7 @@ DLMSProcessor::process(
     QVector<uint8_t> data)
 {
   DlmsMessage msg;
-  CGXByteBuffer dataBuffer;
+  std::vector<uint8_t> dataVector;
   std::string str;
 
   msg.downlink = downlink;
@@ -95,9 +106,9 @@ DLMSProcessor::process(
   else
     msg.type = "<!-- empty -->";
 
-
-  dataBuffer.Set(msg.pdu.data(), msg.pdu.size());
-  if (this->translator.PduToXml(dataBuffer, str) == 0) {
+  dataVector =
+      std::vector<uint8_t>(msg.pdu.data(), msg.pdu.data() + msg.pdu.size());
+  if (this->translator->PduToXml(dataVector, str) == 0) {
     msg.xml = QString::fromStdString(str);
     emit dlmsMessage(msg);
   }

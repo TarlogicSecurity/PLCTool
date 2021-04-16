@@ -30,20 +30,25 @@
 #ifndef UI_UI_H
 #define UI_UI_H
 
-#include <QObject>
-#include "TopologyModel.h"
-#include "Topology/Adapter.h"
-#include "ModemDialog.h"
-#include "MainWindow.h"
-#include "LoadingStatusDialog.h"
-#include "FrameLogUI.h"
-#include "DLMSLogUI.h"
-#include "MeterUI.h"
-#include "TranslatorUI.h"
-#include "CredentialsUI.h"
-#include <QMap>
+#include <Attacks/AttackController.h>
+#include <Attacks/UIAttackController.h>
 
 #include <QElapsedTimer>
+#include <QMap>
+#include <QObject>
+
+#include "Attacks/BlinkAttack/BlinkUI.h"
+#include "CredentialsUI.h"
+#include "DLMSLogUI.h"
+#include "DisclaimerDialog.h"
+#include "FrameLogUI.h"
+#include "LoadingStatusDialog.h"
+#include "MainWindow.h"
+#include "MeterUI.h"
+#include "ModemDialog.h"
+#include "Topology/Adapter.h"
+#include "TopologyModel.h"
+#include "TranslatorUI.h"
 
 struct Frame;
 struct DlmsMessage;
@@ -57,6 +62,7 @@ class QtUi : public QObject
   unsigned int totalFrameCounter = 0;
 
   // Ui-related objects
+  DisclaimerDialog *disclaimerDialog = nullptr;
   MainWindow *mainWindow = nullptr;
   ModemDialog *modemDialog = nullptr;
 
@@ -68,6 +74,7 @@ class QtUi : public QObject
   TranslatorUI *translatorUi = nullptr;
   QElapsedTimer refreshTimer;
   QMap<PLCTool::NodeId, MeterUI *> meterUiMap;
+  QMap<QString, PLCTool::AttackController *> attackControllerMap;
 
   // UI state
   bool firstConnection = true;
@@ -77,9 +84,11 @@ class QtUi : public QObject
 
 public:
   explicit QtUi(QObject *parent = 0);
+  explicit QtUi(QString windowTitle, QString iconPath, QObject *parent = 0);
   ~QtUi();
 
   void show(void);
+  int showDisclaimer(void);
   void setCounters(unsigned int, unsigned int);
   void setLoading(bool);
   void loadingMessage(QString);
@@ -102,11 +111,15 @@ public:
   QString modemPath(void) const;
   unsigned int modemBaud(void) const;
 
+  void registerAttackController(PLCTool::AttackController *controller);
+  void registerUIAttackController(PLCTool::UIAttackController *controller);
+
 signals:
   void openAdapter(void);
   void openMeterInfo(PLCTool::Meter *);
   void openLogFile(QString);
   void closeAdapter(void);
+  void newUIAttackController(PLCTool::UIAttackController *controller);
 
 public slots:
   void onLoadFile(void);
@@ -116,11 +129,12 @@ public slots:
   void onToggleCredentialsLog(bool);
   void onToggleTranslator(bool);
   void onOpenConfig(void);
+  void onNewBlink(void);
   void onSelectFrame(Frame &);
-  void onSelectDlmsMessage(DlmsMessage &);
+  void onSelectDlmsMessage(DlmsMessage);
   void onRejectLoading(void);
   void onCloseSubWindow(QString);
-
+  void onCloseAttackController(QString);
 };
 
 #endif // UI_UI_H

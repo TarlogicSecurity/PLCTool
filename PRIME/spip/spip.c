@@ -36,6 +36,8 @@
 
 #include "spip.h"
 
+#include "util/util.h"
+
 static void *
 spip_ctx_assert_alloc(spip_ctx_t *self, size_t size)
 {
@@ -82,13 +84,16 @@ spip_ctx_sync(spip_ctx_t *self, uint8_t c)
       p = 0;
   }
 
-  if (syncbuf.sync == SPIP_FRAME_SYNC)
+  if (syncbuf.sync == SPIP_FRAME_SYNC) {
+    self->pdu.sync = syncbuf.sync;
+    self->p = 0;
     return TRUE;
+  }
 
   return FALSE;
 }
 
-BOOL 
+BOOL
 spip_iface_write(spip_iface_t *iface, const struct spip_pdu *pdu)
 {
   const uint8_t *as_bytes = (const uint8_t *) pdu;
@@ -109,7 +114,7 @@ spip_iface_write(spip_iface_t *iface, const struct spip_pdu *pdu)
   return TRUE;
 }
 
-BOOL 
+BOOL
 spip_iface_read(spip_iface_t *iface, struct spip_pdu **pdu)
 {
   uint8_t c;
@@ -129,7 +134,7 @@ spip_iface_read(spip_iface_t *iface, struct spip_pdu **pdu)
 
   spip_ctx_resync(self);
 
-  while ((iface->read_byte) (iface->userdata, &c)) {
+  while ((iface->read_byte)(iface->userdata, &c)) {
     fflush(stdout);
     switch (state) {
       case SPIP_LOOP_STATE_SYNCING:
@@ -137,7 +142,7 @@ spip_iface_read(spip_iface_t *iface, struct spip_pdu **pdu)
           state = SPIP_LOOP_READING_HEADER;
           i = 8;
         }
-      
+
         break;
 
       case SPIP_LOOP_READING_HEADER:
@@ -211,7 +216,7 @@ spip_iface_read(spip_iface_t *iface, struct spip_pdu **pdu)
   return FALSE;
 }
 
-void 
+void
 spip_iface_dispose(spip_iface_t *iface, struct spip_pdu *pdu)
 {
   /* NO-OP in this impl */
@@ -245,37 +250,37 @@ spip_iface_close(spip_iface_t *iface)
 /* Helper functions */
 static BOOL
 spip_iface_write_ex(
-  spip_iface_t *iface, 
+  spip_iface_t *iface,
   enum spip_command command,
-  const void *data, 
-  size_t size) 
+  const void *data,
+  size_t size)
 {
   static struct spip_pdu *alloc = NULL;
   static size_t last_size = 0;
   void *tmp = NULL;
   BOOL ok = FALSE;
-  
+
   TRY(size < 65536);
-  
+
   if (alloc == NULL || size > last_size) {
     TRY(tmp = realloc(alloc, size + SPIP_HEADER_SIZE));
     alloc = tmp;
-    
+
     if (last_size == 0) {
       alloc->sync = SPIP_FRAME_SYNC;
       alloc->pad = 0;
     }
-    
+
     last_size = size;
   }
-  
+
   alloc->command = command;
   alloc->size = size;
   alloc->crc = 0;
   alloc->header_crc = 0;
-  
+
   memcpy(alloc->data, data, size);
-  
+
   alloc->crc = spip_crc32b(
       NULL,
       (const uint8_t *) alloc,
@@ -285,22 +290,22 @@ spip_iface_write_ex(
       NULL,
       (const uint8_t *) alloc,
       SPIP_HEADER_SIZE);
-  
+
   TRY(spip_iface_write(iface, alloc));
-  
+
   ok = TRUE;
-  
+
 fail:
-  return ok;    
+  return ok;
 }
 
-BOOL 
+BOOL
 spip_iface_write_frame(spip_iface_t *iface, const void *data, size_t size)
 {
   return spip_iface_write_ex(iface, SPIP_COMMAND_FRAME, data, size);
 }
 
-BOOL 
+BOOL
 spip_iface_set_led_mask(spip_iface_t *iface, uint8_t mask)
 {
   return spip_iface_write_ex(iface, SPIP_COMMAND_LED_SET_MASK, &mask, 1);
@@ -312,23 +317,23 @@ spip_iface_toggle_led_mask(spip_iface_t *iface, uint8_t mask)
   return spip_iface_write_ex(iface, SPIP_COMMAND_LED_TOGGLE_MASK, &mask, 1);
 }
 
-BOOL 
+BOOL
 spip_iface_set_lcd(spip_iface_t *iface, uint8_t row, const char *text)
 {
   char fullmsg[18];
   size_t len;
-  
+
   memset(fullmsg, 0, sizeof(fullmsg));
-  
+
   fullmsg[0] = row;
-  
+
   len = strlen(text);
-  
+
   if (len > 16)
     len = 16;
-    
+
   memcpy(fullmsg + 1, text, len);
-  
+
   return spip_iface_write_ex(iface, SPIP_COMMAND_LCD, fullmsg, sizeof(fullmsg));
 }
 

@@ -68,6 +68,22 @@ StringParamEntry::asInt(void) const
   return ret;
 }
 
+ulong
+StringParamEntry::asULong(void) const
+{
+  ulong ret = 0;
+
+  try {
+    ret = std::stoul(this->value);
+  } catch (std::invalid_argument const &e) {
+    ret = 0;
+  } catch (std::out_of_range const &e) {
+    ret = 0;
+  }
+
+  return ret;
+}
+
 float
 StringParamEntry::asFloat(void) const
 {

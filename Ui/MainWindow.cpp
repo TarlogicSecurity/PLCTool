@@ -30,10 +30,15 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
-
 QSaneMdiSubWindow::QSaneMdiSubWindow(QString const &name)
 {
   this->name = name;
+}
+
+QString
+QSaneMdiSubWindow::getName(void) const
+{
+  return this->name;
 }
 
 
@@ -44,8 +49,8 @@ QSaneMdiSubWindow::closeEvent(QCloseEvent *)
 }
 
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
+  QMainWindow(parent),
+  ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
 
@@ -53,6 +58,12 @@ MainWindow::MainWindow(QWidget *parent) :
   this->ui->topologyView->setModel(this->model);
   this->ui->topologyView->setSelectionBehavior(QAbstractItemView::SelectRows);
   this->connectAll();
+}
+
+MainWindow::MainWindow(QString const &iconPath, QWidget *parent)
+    : MainWindow(parent)
+{
+  this->icon = new QIcon(iconPath);
 }
 
 void
@@ -63,6 +74,18 @@ MainWindow::connectAll(void)
         SIGNAL(toggled(bool)),
         this,
         SIGNAL(toggleStart()));
+
+  connect(
+        this->ui->actionRegister,
+        SIGNAL(triggered(bool)),
+        this,
+        SIGNAL(newRegistration()));
+
+  connect(
+      this->ui->actionBlink,
+      SIGNAL(triggered(bool)),
+      this,
+      SIGNAL(newAssociation()));
 
   connect(
         this->ui->actionSettings,
@@ -107,11 +130,23 @@ MainWindow::connectAll(void)
         SLOT(onNodeActivated(QModelIndex)));
 }
 
+void
+MainWindow::setIconPath(QString const &iconPath)
+{
+  QIcon *icon = new QIcon(iconPath);
+
+  if (this->icon)
+    delete this->icon;
+
+  this->icon = icon;
+}
+
 QSaneMdiSubWindow *
 MainWindow::openWindow(
     QString const &name,
     QString const &title,
-    QWidget *widget)
+    QWidget *widget,
+    QIcon const *icon)
 {
   QSaneMdiSubWindow *subWindow;
 
@@ -121,6 +156,12 @@ MainWindow::openWindow(
   subWindow = new QSaneMdiSubWindow(name);
   subWindow->setWidget(widget);
   subWindow->setWindowTitle(title);
+
+  if (icon)
+    subWindow->setWindowIcon(*icon);
+  else if (this->icon)
+    subWindow->setWindowIcon(*this->icon);
+
   this->windowMap[name] = subWindow;
 
   connect(
@@ -162,6 +203,12 @@ MainWindow::findWindow(QString const &name) const
     return this->windowMap[name];
 
   return nullptr;
+}
+
+QString
+MainWindow::makeWindowName(QString const &baseName)
+{
+  return baseName + QString::number(QDateTime::currentMSecsSinceEpoch());
 }
 
 void
@@ -220,7 +267,8 @@ MainWindow::notifySubNetChanges(void)
 
 MainWindow::~MainWindow()
 {
-    delete ui;
+  delete ui;
+  delete icon;
 }
 
 ///////////////////////////////// Slots ////////////////////////////////////////

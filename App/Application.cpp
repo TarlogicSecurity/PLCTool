@@ -28,19 +28,23 @@
 //
 
 #include "Application.h"
-#include <arpa/inet.h>
-#include <Topology/Exception.h>
+
+#include <Attacks/AttackManager.h>
 #include <Topology/Adapter.h>
-#include <QMessageBox>
+#include <Topology/Exception.h>
+#include <arpa/inet.h>
 #include <ber/ber.h>
 #include <dlms/dlms.h>
+#include <gurux/include/GXHelpers.h>
 #include <gurux/include/TranslatorSimpleTags.h>
+
+#include <QMessageBox>
 
 using namespace PLCTool;
 
 Application::Application(int &argc, char *argv[]) : QApplication(argc, argv)
 {
-  this->ui = new QtUi(this);
+  this->ui = new QtUi(WINDOW_TITLE, WINDOW_ICON_PATH, this);
 
   this->connectUi();
 
@@ -61,8 +65,14 @@ Application::Application(int &argc, char *argv[]) : QApplication(argc, argv)
 bool
 Application::work(void)
 {
+  bool result = true;
+
   this->ui->show();
-  return this->exec() == 0;
+
+  if (this->ui->showDisclaimer() == QDialog::Accepted)
+    result = this->exec() == 0;
+
+  return result;
 }
 
 Application::~Application()
@@ -129,6 +139,14 @@ Application::connectProcessors(void)
         SIGNAL(dlmsMessage(DlmsMessage)),
         this,
         SLOT(onProcessedDlmsMessage(DlmsMessage)));
+}
+
+void
+Application::createAttackManager(PLCTool::PrimeAdapter *parent)
+{
+  assert(this->attackManager == nullptr);
+
+  this->attackManager = new AttackManager(parent);
 }
 
 bool
@@ -221,10 +239,20 @@ Application::connectAdapter(void)
         SLOT(onSubnetAnnounce(PLCTool::Concentrator*,QDateTime,uint64_t)));
 
   connect(
-        this->adapter,
-        SIGNAL(dataReceived(PLCTool::Meter*,QDateTime,bool,const void*,size_t)),
-        this,
-        SLOT(onDataReceived(PLCTool::Meter*,QDateTime,bool,const void*,size_t)));
+      this->adapter,
+      SIGNAL(dataReceived(
+          PLCTool::Meter *,
+          QDateTime,
+          bool,
+          const void *,
+          size_t)),
+      this,
+      SLOT(onDataReceived(
+          PLCTool::Meter *,
+          QDateTime,
+          bool,
+          const void *,
+          size_t)));
 
   connect(
         this->adapter,
@@ -243,12 +271,6 @@ Application::connectAdapter(void)
         SIGNAL(closed(void)),
         this,
         SLOT(onAdapterClosed(void)));
-
-  connect(
-        this->adapter,
-        SIGNAL(status(QString)),
-        this,
-        SLOT(onAdapterStatusMessage(QString)));
 
   connect(
         this->adapter,
@@ -283,6 +305,12 @@ Application::connectUi(void)
         SIGNAL(openMeterInfo(PLCTool::Meter*)),
         this,
         SLOT(onOpenMeterInfo(PLCTool::Meter*)));
+
+  connect(
+        this->ui,
+        SIGNAL(newUIAttackController(PLCTool::UIAttackController*)),
+        this,
+        SLOT(onNewUIAttackController(PLCTool::UIAttackController*)));
 }
 
 static std::string
@@ -488,15 +516,18 @@ fail:
     ber_type_destroy(type);
 }
 
-/////////////////////////////////// Slots /////////////////////////////////////
+/////////////////////////////////// Slots //////////////////////////////////////
 void
 Application::onOpenAdapter(void)
 {
   if (this->openAdapter(this->ui->modemPath(), this->ui->modemBaud())) {
     this->clearMeterInfo();
+
     this->ui->openFrameLog();
     this->ui->setLoading(false);
     this->ui->setAdapter(static_cast<PLCTool::Adapter *>(this->adapter));
+
+    this->createAttackManager(this->adapter);
   }
 }
 
@@ -515,8 +546,10 @@ Application::onOpenLogFile(QString path)
 void
 Application::onCloseAdapter(void)
 {
-  if (this->closeAdapter())
+  if (this->closeAdapter()) {
     this->ui->setAdapter(nullptr);
+    this->attackManager = nullptr;
+  }
 }
 
 void
@@ -651,4 +684,37 @@ Application::onOpenMeterInfo(PLCTool::Meter *meter)
 {
   MeterInfo *info = this->assertMeterInfo(meter);
   this->ui->openMeterInfoView(info);
+}
+
+void
+Application::onNewUIAttackController(PLCTool::UIAttackController *controller)
+{
+  try {
+    if (!this->attackManager) {
+      controller->deleteLater();
+
+      PH_THROW(
+          GENERIC,
+          "Failed to create new attack. Please verify that the device is correctly "
+          "plugged.");
+    }
+
+    connect(
+          controller,
+          SIGNAL(requestAttack(
+                   QString,
+                   StringParams const &,
+                   AttackController const *)),
+          this->attackManager,
+          SLOT(onRequestedAttack(
+                 QString,
+                 StringParams const &,
+                 AttackController const *)));
+    this->ui->registerUIAttackController(controller);
+  } catch (PLCTool::Exception &e) {
+    QMessageBox::critical(
+          nullptr,
+          "Failed to create attack",
+          QString::fromStdString(e.toString()));
+  }
 }

@@ -8,12 +8,30 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+isEmpty(PREFIX) {
+  PREFIX=/usr/local
+}
+
+target.path=$$PREFIX/bin
+
 TARGET = PLCTool
 TEMPLATE = app
 
 INCLUDEPATH += gurux/include
 
 SOURCES += main.cpp\
+    App/GXDLMSTranslatorInterface.cpp \
+    Attacks/Attack.cpp \
+    Attacks/AttackController.cpp \
+    Attacks/AttackFactory.cpp \
+    Attacks/AttackFactoryLibrary.cpp \
+    Attacks/AttackManager.cpp \
+    Attacks/AttackManagerWorker.cpp \
+    Attacks/BlinkAttack/BlinkAttack.cpp \
+    Attacks/BlinkAttack/BlinkAttackFactory.cpp \
+    Attacks/BlinkAttack/BlinkController.cpp \
+    Attacks/UIAttackController.cpp \
+    Ui/DisclaimerDialog.cpp \
     Topology/Adapter.cpp \
     Topology/AdapterEventListener.cpp \
     Topology/Concentrator.cpp \
@@ -33,6 +51,7 @@ SOURCES += main.cpp\
     PRIME/spip/loop.c \
     PRIME/spip/spip.c \
     App/Application.cpp \
+    Attacks/BlinkAttack/BlinkUI.cpp \
     Ui/CredInfoTableModel.cpp \
     Ui/QtUi.cpp \
     Ui/TopologyModel.cpp \
@@ -47,9 +66,8 @@ SOURCES += main.cpp\
     dlms/dlms.c \
     dlms/dlmsmsg.c \
     dlms/meter.c \
-    util/util.c \
-    gurux/src/GXAdjacentCell.cpp \
     gurux/src/GXAPDU.cpp \
+    gurux/src/GXAdjacentCell.cpp \
     gurux/src/GXApplicationContextName.cpp \
     gurux/src/GXAuthenticationMechanismName.cpp \
     gurux/src/GXBitString.cpp \
@@ -60,7 +78,6 @@ SOURCES += main.cpp\
     gurux/src/GXCommodity.cpp \
     gurux/src/GXCreditChargeConfiguration.cpp \
     gurux/src/GXCurrency.cpp \
-    gurux/src/GXDateTime.cpp \
     gurux/src/GXDLMS.cpp \
     gurux/src/GXDLMSAccount.cpp \
     gurux/src/GXDLMSActionItem.cpp \
@@ -96,15 +113,15 @@ SOURCES += main.cpp\
     gurux/src/GXDLMSImageTransfer.cpp \
     gurux/src/GXDLMSIp4Setup.cpp \
     gurux/src/GXDLMSIp4SetupIpOption.cpp \
+    gurux/src/GXDLMSLNCommandHandler.cpp \
+    gurux/src/GXDLMSLNParameters.cpp \
     gurux/src/GXDLMSLimiter.cpp \
     gurux/src/GXDLMSLimits.cpp \
     gurux/src/GXDLMSLlcSscsSetup.cpp \
-    gurux/src/GXDLMSLNCommandHandler.cpp \
-    gurux/src/GXDLMSLNParameters.cpp \
-    gurux/src/GXDLMSMacAddressSetup.cpp \
     gurux/src/GXDLMSMBusClient.cpp \
     gurux/src/GXDLMSMBusMasterPortSetup.cpp \
     gurux/src/GXDLMSMBusSlavePortSetup.cpp \
+    gurux/src/GXDLMSMacAddressSetup.cpp \
     gurux/src/GXDLMSMd5.cpp \
     gurux/src/GXDLMSMessageHandler.cpp \
     gurux/src/GXDLMSModemConfiguration.cpp \
@@ -132,6 +149,8 @@ SOURCES += main.cpp\
     gurux/src/GXDLMSRegister.cpp \
     gurux/src/GXDLMSRegisterActivation.cpp \
     gurux/src/GXDLMSRegisterMonitor.cpp \
+    gurux/src/GXDLMSSNCommandHandler.cpp \
+    gurux/src/GXDLMSSNParameters.cpp \
     gurux/src/GXDLMSSapAssignment.cpp \
     gurux/src/GXDLMSSchedule.cpp \
     gurux/src/GXDLMSScheduleEntry.cpp \
@@ -146,8 +165,6 @@ SOURCES += main.cpp\
     gurux/src/GXDLMSSettings.cpp \
     gurux/src/GXDLMSSha1.cpp \
     gurux/src/GXDLMSSha256.cpp \
-    gurux/src/GXDLMSSNCommandHandler.cpp \
-    gurux/src/GXDLMSSNParameters.cpp \
     gurux/src/GXDLMSSpecialDay.cpp \
     gurux/src/GXDLMSSpecialDaysTable.cpp \
     gurux/src/GXDLMSTarget.cpp \
@@ -159,11 +176,12 @@ SOURCES += main.cpp\
     gurux/src/GXDLMSValueEventArg.cpp \
     gurux/src/GXDLMSVariant.cpp \
     gurux/src/GXDLMSWeekProfile.cpp \
+    gurux/src/GXDateTime.cpp \
     gurux/src/GXHelpers.cpp \
     gurux/src/GXReplyData.cpp \
+    gurux/src/GXSNInfo.cpp \
     gurux/src/GXSecure.cpp \
     gurux/src/GXSerialNumberCounter.cpp \
-    gurux/src/GXSNInfo.cpp \
     gurux/src/GXStandardObisCode.cpp \
     gurux/src/GXStandardObisCodeCollection.cpp \
     gurux/src/GXTokenGatewayConfiguration.cpp \
@@ -171,6 +189,7 @@ SOURCES += main.cpp\
     gurux/src/GXXmlReader.cpp \
     gurux/src/GXXmlWriter.cpp \
     gurux/src/GXXmlWriterSettings.cpp \
+    util/util.c \
     Ui/DLMSLogUI.cpp \
     Ui/TranslatorUI.cpp \
     Ui/XMLHighlighter.cpp \
@@ -183,6 +202,19 @@ SOURCES += main.cpp\
     App/MeterInfo.cpp
 
 HEADERS  += Ui/MainWindow.h \
+    App/DLMSTranslator.h \
+    App/GXDLMSTranslatorInterface.h \
+    Attacks/Attack.h \
+    Attacks/AttackController.h \
+    Attacks/AttackFactory.h \
+    Attacks/AttackFactoryLibrary.h \
+    Attacks/AttackManager.h \
+    Attacks/AttackManagerWorker.h \
+    Attacks/BlinkAttack/BlinkAttack.h \
+    Attacks/BlinkAttack/BlinkAttackFactory.h \
+    Attacks/BlinkAttack/BlinkController.h \
+    Attacks/UIAttackController.h \
+    Ui/DisclaimerDialog.h \
     Topology/Adapter.h \
     Topology/AdapterEventListener.h \
     Topology/Concentrator.h \
@@ -202,26 +234,22 @@ HEADERS  += Ui/MainWindow.h \
     PRIME/PrimeAdapter.h \
     PRIME/spip/spip.h \
     App/Application.h \
+    Attacks/BlinkAttack/BlinkUI.h \
     Ui/CredInfoTableModel.h \
     Ui/QtUi.h \
     Ui/TopologyModel.h \
     Ui/MainWindow.h \
     Ui/ModemDialog.h \
     Ui/MeterUI.h \
-    CredentialsUI.h \
+    Ui/CredentialsUI.h \
     Ui/FrameLogUI.h \
     ber/ber.h \
     ber/stream.h \
     dlms/dlms.h \
     dlms/dlmsmsg.h \
     dlms/meter.h \
-    util/defs.h \
-    util/util.h \
-    gurux/include/chipperingenums.h \
-    gurux/include/enums.h \
-    gurux/include/errorcodes.h \
-    gurux/include/GXAdjacentCell.h \
     gurux/include/GXAPDU.h \
+    gurux/include/GXAdjacentCell.h \
     gurux/include/GXApplicationContextName.h \
     gurux/include/GXAttributeCollection.h \
     gurux/include/GXAuthentication.h \
@@ -234,9 +262,6 @@ HEADERS  += Ui/MainWindow.h \
     gurux/include/GXCommodity.h \
     gurux/include/GXCreditChargeConfiguration.h \
     gurux/include/GXCurrency.h \
-    gurux/include/GXDataInfo.h \
-    gurux/include/GXDate.h \
-    gurux/include/GXDateTime.h \
     gurux/include/GXDLMS.h \
     gurux/include/GXDLMSAccount.h \
     gurux/include/GXDLMSActionItem.h \
@@ -274,16 +299,16 @@ HEADERS  += Ui/MainWindow.h \
     gurux/include/GXDLMSImageTransfer.h \
     gurux/include/GXDLMSIp4Setup.h \
     gurux/include/GXDLMSIp4SetupIpOption.h \
+    gurux/include/GXDLMSLNCommandHandler.h \
+    gurux/include/GXDLMSLNParameters.h \
     gurux/include/GXDLMSLimiter.h \
     gurux/include/GXDLMSLimits.h \
     gurux/include/GXDLMSLlcSscsSetup.h \
-    gurux/include/GXDLMSLNCommandHandler.h \
-    gurux/include/GXDLMSLNParameters.h \
     gurux/include/GXDLMSLongTransaction.h \
-    gurux/include/GXDLMSMacAddressSetup.h \
     gurux/include/GXDLMSMBusClient.h \
     gurux/include/GXDLMSMBusMasterPortSetup.h \
     gurux/include/GXDLMSMBusSlavePortSetup.h \
+    gurux/include/GXDLMSMacAddressSetup.h \
     gurux/include/GXDLMSMd5.h \
     gurux/include/GXDLMSMessageHandler.h \
     gurux/include/GXDLMSModemConfiguration.h \
@@ -311,6 +336,8 @@ HEADERS  += Ui/MainWindow.h \
     gurux/include/GXDLMSRegister.h \
     gurux/include/GXDLMSRegisterActivation.h \
     gurux/include/GXDLMSRegisterMonitor.h \
+    gurux/include/GXDLMSSNCommandHandler.h \
+    gurux/include/GXDLMSSNParameters.h \
     gurux/include/GXDLMSSapAssignment.h \
     gurux/include/GXDLMSSchedule.h \
     gurux/include/GXDLMSScheduleEntry.h \
@@ -325,8 +352,6 @@ HEADERS  += Ui/MainWindow.h \
     gurux/include/GXDLMSSettings.h \
     gurux/include/GXDLMSSha1.h \
     gurux/include/GXDLMSSha256.h \
-    gurux/include/GXDLMSSNCommandHandler.h \
-    gurux/include/GXDLMSSNParameters.h \
     gurux/include/GXDLMSSpecialDay.h \
     gurux/include/GXDLMSSpecialDaysTable.h \
     gurux/include/GXDLMSTarget.h \
@@ -339,16 +364,19 @@ HEADERS  += Ui/MainWindow.h \
     gurux/include/GXDLMSValueEventCollection.h \
     gurux/include/GXDLMSVariant.h \
     gurux/include/GXDLMSWeekProfile.h \
+    gurux/include/GXDataInfo.h \
+    gurux/include/GXDate.h \
+    gurux/include/GXDateTime.h \
     gurux/include/GXHelpers.h \
     gurux/include/GXMacAvailableSwitch.h \
     gurux/include/GXMacDirectTable.h \
     gurux/include/GXMacMulticastEntry.h \
     gurux/include/GXMacPhyCommunication.h \
     gurux/include/GXReplyData.h \
+    gurux/include/GXSNInfo.h \
     gurux/include/GXSecure.h \
     gurux/include/GXSerialNumberCounter.h \
     gurux/include/GXServerReply.h \
-    gurux/include/GXSNInfo.h \
     gurux/include/GXStandardObisCode.h \
     gurux/include/GXStandardObisCodeCollection.h \
     gurux/include/GXTime.h \
@@ -363,6 +391,11 @@ HEADERS  += Ui/MainWindow.h \
     gurux/include/TranslatorSimpleTags.h \
     gurux/include/TranslatorStandardTags.h \
     gurux/include/TranslatorTags.h \
+    gurux/include/chipperingenums.h \
+    gurux/include/enums.h \
+    gurux/include/errorcodes.h \
+    util/defs.h \
+    util/util.h \
     Ui/DLMSLogUI.h \
     Ui/TranslatorUI.h \
     Ui/XMLHighlighter.h \
@@ -375,6 +408,8 @@ HEADERS  += Ui/MainWindow.h \
 
 
 FORMS    += Forms/MainWindow.ui \
+    Attacks/BlinkAttack/BlinkUI.ui \
+    Forms/DisclaimerDialog.ui \
     Forms/MeterUI.ui \
     Forms/ModemDialog.ui \
     Forms/CredentialsUI.ui \
@@ -387,3 +422,13 @@ unix: LIBS += -ldl
 
 RESOURCES += \
     icons.qrc
+
+unix:  QMAKE_SUBSTITUTES += PLCTool.desktop.in
+
+unix:  desktop.path  = $$PREFIX/share/applications
+unix:  desktop.files = PLCTool.desktop
+unix:  icons.path    = $$PREFIX/share/icons/hicolor/256x256/apps/
+unix:  icons.files   = Icons/PLCTool.png
+unix:  INSTALLS     += desktop icons
+
+INSTALLS += target

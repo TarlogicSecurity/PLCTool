@@ -31,11 +31,13 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <time.h>
 
 #include <util/util.h>
+#include <util/defs.h>
 
 #define STRBUILD_BSIZ           16
 #define DEBUG_BACKTRACE_NFUNCS  48
@@ -75,9 +77,9 @@ vstrbuild (const char *fmt, va_list ap)
   int size, zeroindex;
   int last;
   va_list copy;
-  
+
   last = 0;
-  
+
   if (fmt != NULL)
   {
     if (!*fmt) /* Yo no hago trabajo extra */
@@ -86,35 +88,35 @@ vstrbuild (const char *fmt, va_list ap)
       out[0] = '\0';
       return out;
     }
-    
+
     va_copy (copy, ap);
     size = vsnprintf (NULL, 0, fmt, copy) + 1;
     va_end (copy);
-    
+
     out = xmalloc (size);
-    
+
     va_copy (copy, ap);
     vsnprintf (out, size, fmt, copy);
     va_end (copy);
-    
+
     for(;;)
     {
-      
+
       if ((zeroindex = is_asciiz (out, last, size)) != 0)
         break;
-      
+
       /* Oh, algo ha ocurrido. No hay un cero en ese
-	 intervalo. Tenemos que buscarlo */
-      
+         intervalo. Tenemos que buscarlo */
+
       /* Estamos seguros de que en los intervalos anteriores NO hay
-	 cero, as? que buscaremos a partir del size anterior */
+         cero, as? que buscaremos a partir del size anterior */
 
       /* Incrementaremos el tama?o en STRBUILD_BSIZ bytes */
       last = size;
       size += STRBUILD_BSIZ;
-      
+
       out = xrealloc (out, size); /* Reasignamos */
-      
+
       va_copy (copy, ap);
       vsnprintf (out, size, fmt, copy);
       va_end (copy);
@@ -122,10 +124,9 @@ vstrbuild (const char *fmt, va_list ap)
   }
   else
     out = NULL;
-  
+
   return out;
 }
-
 
 /* Construye una cadena mediante el formato printf y devuelve un
    puntero a la cadena resultado. DEBES liberar tu mismo la salida. */
@@ -149,12 +150,12 @@ void*
 xmalloc (size_t size)
 {
   void* m;
-  
+
   m = malloc (size);
 
   if (m == NULL)
     xalloc_die ();
-  
+
   return m;
 }
 
@@ -163,9 +164,9 @@ void*
 xrealloc (void* ptr, size_t new_size)
 {
   void* m;
-  
+
   m = realloc (ptr, new_size);
-  
+
   if (m == NULL)
     xalloc_die ();
 
@@ -186,7 +187,7 @@ xstrdup (const char *str)
   }
   else
     ret = NULL;
-  
+
   return ret;
 }
 
@@ -204,11 +205,11 @@ ptr_list_append_check (void ***list, int *count, void *new)
 {
   int i;
   void **reallocd_list;
-  
+
   for (i = 0; i < *count; i++)
     if ((*list)[i] == NULL)
       break;
-      
+
   if (i == *count)
   {
     if ((reallocd_list = xrealloc (*list, (1 + *count) * sizeof (void *))) == NULL)
@@ -219,9 +220,9 @@ ptr_list_append_check (void ***list, int *count, void *new)
       *list = reallocd_list;
     }
   }
-    
+
   (*list)[i] = new;
-  
+
   return i;
 }
 
@@ -236,18 +237,18 @@ ptr_list_remove_first (void ***list, int *count, void *ptr)
 {
   int i;
   int found;
-  
+
   found = 0;
-  
+
   for (i = 0; i < *count; i++)
     if ((*list)[i] == ptr || ptr == NULL)
     {
       (*list)[i] = NULL;
       found++;
-      
+
       break;
     }
-    
+
   return found;
 }
 
@@ -257,16 +258,16 @@ ptr_list_remove_all (void ***list, int *count, void *ptr)
 {
   int i;
   int found;
-  
+
   found = 0;
-  
+
   for (i = 0; i < *count; i++)
     if ((*list)[i] == ptr || ptr == NULL)
     {
       (*list)[i] = NULL;
       found++;
     }
-    
+
   return found;
 }
 
@@ -297,10 +298,10 @@ fread_line (FILE *fp)
   char *line;
   int buffer_size;
   int n;
-  
+
   line = NULL;
 
-  
+
   for (buffer_size = n = 0; (c = fgetc (fp)) != EOF; n++)
   {
     if (c == '\r')
@@ -308,15 +309,15 @@ fread_line (FILE *fp)
       n--;
       continue;
     }
-    
+
     if (c == '\n')
     {
       if (line == NULL)
         line = xstrdup ("");
-        
+
       break;
     }
-    
+
     if (buffer_size < (n + 1))
     {
       if (buffer_size)
@@ -336,7 +337,7 @@ fread_line (FILE *fp)
 
   if (line != NULL)
     line[n] = '\0';
-    
+
   return line;
 }
 
@@ -346,11 +347,11 @@ struct strlist *
 strlist_new (void)
 {
   struct strlist *new;
-  
+
   new = xmalloc (sizeof (struct strlist));
-  
+
   memset (new, 0, sizeof (struct strlist));
-  
+
   return new;
 }
 
@@ -362,12 +363,12 @@ strlist_append_string (struct strlist *list, const char *string)
 }
 
 void
-strlist_walk (struct strlist *list, 
+strlist_walk (struct strlist *list,
               void *data,
               void (*walk) (const char *, void *))
 {
   int i;
-  
+
   for (i = 0; i < list->strings_count; i++)
     if (list->strings_list[i] != NULL)
       (walk) (list->strings_list[i], data);
@@ -377,14 +378,14 @@ void
 strlist_destroy (struct strlist *list)
 {
   int i;
-  
+
   for (i = 0; i < list->strings_count; i++)
     if (list->strings_list[i] != NULL)
       free (list->strings_list[i]);
-      
+
   if (list->strings_list != NULL)
     free (list->strings_list);
-    
+
   free (list);
 }
 
@@ -392,12 +393,12 @@ int
 strlist_have_element (const struct strlist *list, const char *string)
 {
   int i;
-  
+
   for (i = 0; i < list->strings_count; i++)
     if (list->strings_list[i] != NULL)
       if (strcmp (list->strings_list[i], string) == 0)
         return 1;
-        
+
   return 0;
 }
 
@@ -405,7 +406,7 @@ void
 strlist_cat (struct strlist *dest, const struct strlist *list)
 {
   int i;
-  
+
   for (i = 0; i < list->strings_count; i++)
     if (list->strings_list[i] != NULL)
       strlist_append_string (dest, list->strings_list[i]);
@@ -415,7 +416,7 @@ void
 strlist_union (struct strlist *dest, const struct strlist *list)
 {
   int i;
-  
+
   for (i = 0; i < list->strings_count; i++)
     if (list->strings_list[i] != NULL)
       if (!strlist_have_element (dest, list->strings_list[i]))
@@ -426,7 +427,7 @@ void
 strlist_debug (const struct strlist *list)
 {
   int i;
-  
+
   for (i = 0; i < list->strings_count; i++)
     if (list->strings_list[i] != NULL)
       fprintf (stderr, "%3d. %s\n", i, list->strings_list[i]);
@@ -435,7 +436,7 @@ strlist_debug (const struct strlist *list)
 }
 
 
-/* 
+/*
    Bit layout of returned byte:
    8   4   0
    MMMMDDDDD
@@ -455,7 +456,7 @@ al_append_argument (arg_list_t* al, const char* arg)
   al->al_argv = argl;
 }
 
-void 
+void
 free_al (arg_list_t* al)
 {
   int i;
@@ -465,7 +466,7 @@ free_al (arg_list_t* al)
 
   if (al->al_line != NULL)
     free (al->al_line);
-  
+
   free (al->al_argv);
   free (al);
 }
@@ -488,7 +489,7 @@ __split_command (const char *line, char *separators, int fixed_sep_size)
   arg_info->al_argc = 0;
   arg_info->al_argv = NULL;
   arg_info->al_line = NULL;
-    
+
   this_argument = NULL;
 
   split_flag = 1;
@@ -549,7 +550,7 @@ __split_command (const char *line, char *separators, int fixed_sep_size)
   return arg_info;
 }
 
-arg_list_t * 
+arg_list_t *
 csv_split_line (const char *line)
 {
   return __split_command (line, ",", 1);
@@ -567,19 +568,19 @@ lscanf_huge (const char *fmt, ...)
   char *line;
   int result;
   va_list ap;
-  
+
   va_start (ap, fmt);
-  
+
   if ((line = fread_line (stdin)) == NULL)
-    result = -1; 
+    result = -1;
   else
   {
     result = vsscanf (line, fmt, ap);
     free (line);
   }
-  
+
   va_end (ap);
-  
+
   return result;
 }
 
@@ -590,16 +591,16 @@ lscanf (const char *fmt, ...)
   char line[RECOMMENDED_LINE_SIZE];
   int result;
   va_list ap;
-  
+
   va_start (ap, fmt);
-  
+
   if (fgets (line, RECOMMENDED_LINE_SIZE - 1, stdin) == NULL)
-    result = -1; 
+    result = -1;
   else
     result = vsscanf (line, fmt, ap);
-  
+
   va_end (ap);
-  
+
   return result;
 }
 
@@ -611,7 +612,7 @@ ltrim (const char *str)
       break;
     else
       str++;
-      
+
   return xstrdup (str);
 }
 
@@ -620,16 +621,16 @@ rtrim (const char *str)
 {
   char *copy;
   char *tail;
-  
+
   copy = xstrdup (str);
-  
+
   for (tail = copy + strlen (copy) - 1; (unsigned long) copy <= (unsigned long) tail; tail--)
   {
     if (!isspace (*tail))
       break;
     *tail = '\0';
   }
-  
+
   return copy;
 }
 
@@ -644,43 +645,43 @@ trim (const char *str)
       break;
     else
       str++;
-        
+
   copy = xstrdup (str);
-  
+
   for (tail = copy + strlen (copy) - 1; (unsigned long) copy <= (unsigned long) tail; tail--)
   {
     if (!isspace (*tail))
       break;
     *tail = '\0';
   }
-  
+
   return copy;
 }
 
-/* 
+/*
    Bit layout of returned byte:
    8   4   0
    MMMMDDDDD
 */
- 
+
 unsigned int
 yday_to_daymonth (int yday, int year)
 {
   int monthdays[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
   int month = 0;
-  
+
   yday--;
-  
-  if ((year % 4 == 0) && ((!(year % 100 == 0)) || (year % 400 == 0))) 
+
+  if ((year % 4 == 0) && ((!(year % 100 == 0)) || (year % 400 == 0)))
     monthdays[1] = 29;
-  
+
   while (monthdays[month] <= yday)
   {
     yday -= monthdays[month++];
     if (month == 12)
       return 0;
   }
-  
+
   return yday | (month << 5);
 }
 
@@ -690,12 +691,131 @@ get_curr_ctime (void)
   time_t now;
   char *text;
   time (&now);
-  
+
   text = ctime (&now);
-  
+
   text[24] = 0;
-  
+
   return text;
+}
+
+void
+print_hexdump(const u_char *bytes, uint length)
+{
+  char *hex_string = NULL;
+
+  if ((hex_string = make_hexdump(bytes, length, 8, 2, true))) {
+    printf("%s", hex_string);
+    free(hex_string);
+  }
+}
+
+/* Construye una cadena de caracteres con el volcado hexadecimal de la cadena
+ * de bytes. Devuelve un puntero a la cadena resultante, que DEBE SER LIBERADA
+ * POR EL CLIENTE. */
+char *
+make_hexdump(
+    const u_char *bytes,
+    uint length,
+    uint word_size,
+    uint words_per_line,
+    bool tabulate)
+{
+  char *out_string = NULL;
+  uint out_pos = 0;
+
+  uint out_size;
+  uint out_line_size;
+  uint out_byte_line_size;
+  uint out_ascii_line_size;
+  uint out_byte_word_size;
+  uint out_ascii_word_size;
+
+  uint i, j, k;
+  uint x;
+
+  char tab[] = "    ";
+  char byte_separator[] = " ";
+  char byte_word_separator[] = "  ";
+  char ascii_separator[] = "";
+  char ascii_word_separator[] = " ";
+
+  uint line_size;
+  uint number_of_lines;
+
+  /* precalculate parameters */
+  line_size = word_size * words_per_line;
+  number_of_lines = length / line_size;
+  if (length % line_size) ++number_of_lines;
+
+  out_byte_word_size = word_size * (2 + strlen(byte_separator)) -
+      strlen(byte_separator);
+  out_ascii_word_size = word_size * (1 + strlen(ascii_separator)) -
+      strlen(ascii_separator);
+  out_byte_line_size = words_per_line *
+      (out_byte_word_size + strlen(byte_word_separator)) -
+      strlen(byte_word_separator);
+  out_ascii_line_size = words_per_line *
+      (out_ascii_word_size + strlen(ascii_word_separator)) -
+      strlen(ascii_word_separator);
+  out_line_size = 1 + 2 * strlen(tab) + out_byte_line_size +
+      out_ascii_line_size;
+  out_size = number_of_lines * out_line_size + 1;
+
+  ALLOCATE_MANY(out_string, out_size, char);
+
+  /* for each line */
+  for (i = 0; i < number_of_lines; ++i) {
+    if(tabulate)
+      out_pos += sprintf(out_string + out_pos, "%s", tab);
+
+    /* print hex */
+    for (j = 0; j < words_per_line; ++j) {
+      for (k = 0; k < word_size; ++k) {
+        x = i * line_size + j * word_size + k;
+        if (x < length)
+          out_pos += sprintf(out_string + out_pos, "%02X", bytes[x]);
+        else
+          out_pos += sprintf(out_string + out_pos, "  ");
+
+        if (k < word_size - 1)
+          out_pos += sprintf(out_string + out_pos, "%s", byte_separator);
+      }
+
+      if (j < words_per_line - 1)
+        out_pos += sprintf(out_string + out_pos, "%s", byte_word_separator);
+    }
+    out_pos += sprintf(out_string + out_pos, "%s", tab);
+
+    /* print ascii */
+    for (j = 0; j < words_per_line; ++j) {
+      for (k = 0; k < word_size; ++k) {
+        x = i * line_size + j * word_size + k;
+        if (x < length)
+          if (31 < bytes[x] && bytes[x] < 127)
+            out_pos += sprintf(out_string + out_pos, "%c", bytes[x]);
+          else
+            out_pos += sprintf(out_string + out_pos, ".");
+        else
+          out_pos += sprintf(out_string + out_pos, " ");
+
+        if (k < word_size - 1)
+          out_pos += sprintf(out_string + out_pos, "%s", ascii_separator);
+      }
+
+      if (j < words_per_line - 1)
+        out_pos += sprintf(out_string + out_pos, "%s", ascii_word_separator);
+    }
+    out_pos += sprintf(out_string + out_pos, "\n");
+  }
+
+  return out_string;
+
+fail:
+  if (out_string)
+    free(out_string);
+
+  return NULL;
 }
 
 void

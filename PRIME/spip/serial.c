@@ -27,17 +27,18 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-#include "spip.h"
-#include <poll.h>
-#include <string.h>
-#include <stddef.h>
-#include <unistd.h>
 #include <asm/ioctls.h>
 #include <asm/termbits.h>
-#include <sys/types.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <stddef.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include "spip.h"
 
 struct cancellable_file {
   BOOL init;
@@ -169,7 +170,7 @@ spip_interface_open_serial(
   int fd = -1;
   BOOL ok = FALSE;
 
-  if ((fd = open(path, O_RDWR)) == -1) {
+  if ((fd = open(path, O_RDWR | O_NOCTTY | O_SYNC)) == -1) {
     fprintf(
         stderr,
         "Failed to open `%s' in RW mode: %s\n",
@@ -180,6 +181,40 @@ spip_interface_open_serial(
 
   if (stat(path, &sbuf) != -1 && S_ISCHR(sbuf.st_mode)) {
     TRYC(ioctl(fd, TCGETS2, &tio));
+
+    /* Clear parity bit, disabling parity (most common) */
+    tio.c_cflag &= ~PARENB;
+    /* Clear stop field, only one stop bit used in communication (most common)
+     */
+    tio.c_cflag &= ~CSTOPB;
+    /* Clear all bits that set the data size */
+    tio.c_cflag &= ~CSIZE;
+    /* 8 bits per byte (most common) */
+    tio.c_cflag |= CS8;
+    /* Disable RTS/CTS hardware flow control (most common) */
+    tio.c_cflag &= ~CRTSCTS;
+    /* Turn on READ & ignore ctrl lines (CLOCAL = 1) */
+    tio.c_cflag |= CREAD | CLOCAL;
+
+    tio.c_lflag &= ~ICANON;
+    /* Disable echo */
+    tio.c_lflag &= ~ECHO;
+    /* Disable erasure */
+    tio.c_lflag &= ~ECHOE;
+    /* Disable new-line echo */
+    tio.c_lflag &= ~ECHONL;
+    /* Disable interpretation of INTR, QUIT and SUSP */
+    tio.c_lflag &= ~ISIG;
+    /* Turn off s/w flow ctrl */
+    tio.c_iflag &= ~(IXON | IXOFF | IXANY);
+    /* Disable any special handling of received bytes */
+    tio.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL);
+
+    /* Prevent special interpretation of output bytes (e.g. newline chars) */
+    tio.c_oflag &= ~OPOST;
+
+    /* Prevent conversion of newline to carriage return/line feed */
+    tio.c_oflag &= ~ONLCR;
 
     tio.c_cflag &= ~CBAUD;
     tio.c_cflag |= BOTHER;

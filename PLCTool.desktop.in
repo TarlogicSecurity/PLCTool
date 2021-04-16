@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=PLCTool
+Comment=PLC Protocol Swiss Knife
+Exec=PLCTool
+Icon=PLCTool
+Categories=Utility

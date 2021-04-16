@@ -506,6 +506,7 @@ PrimeAdapterImpl::PrimeAdapterImpl(
 {
 
   std::string path = params["path"].asString();
+  unsigned int baud = params["baud"].asULong();
 
   this->commonInit(owner);
 
@@ -515,22 +516,19 @@ PrimeAdapterImpl::PrimeAdapterImpl(
     path = "/dev/ttyACM0";
 
   PH_CHECK_GENERIC(
-      spip_interface_open_serial(
-          &this->iface,
-          path.c_str(),
-          PRIME_ADAPTER_BAUD_RATE),
+      spip_interface_open_serial(&this->iface, path.c_str(), baud),
       "Cannot open SPIP protocol on " + path);
 
   this->spipWarmup();
 
-  spip_iface_set_lcd(&this->iface, 0, "PLC Tool 0.1");
+  spip_iface_set_lcd(&this->iface, 0, "PLC Tool 1.1");
   spip_iface_set_lcd(&this->iface, 1, "Capturing...");
 
   PH_CHECK_GENERIC(pthread_create(
       &this->readerThread,
       nullptr,
       PrimeAdapterImpl::spipReaderThreadFunc,
-      this) != -1,
+      this) == 0,
       "Cannot create SPIP reader thread");
   this->readerThreadRunning = true;
 }
@@ -549,7 +547,7 @@ PrimeAdapterImpl::PrimeAdapterImpl(
       &this->readerThread,
       nullptr,
       PrimeAdapterImpl::logFileReaderThreadFunc,
-      this) != -1,
+      this) == 0,
       "Cannot create file reader thread");
   this->readerThreadRunning = true;
 }
@@ -650,6 +648,10 @@ PrimeAdapter::writeFrame(const void *data, size_t size)
 void
 PrimeAdapter::writeFrame(std::vector<uint8_t> const &data)
 {
+  for (auto val : data) printf("%02x", val);
+  printf("\n");
+  fflush(stdout);
+
   this->p_impl->writeFrame(data.data(), data.size());
 }
 

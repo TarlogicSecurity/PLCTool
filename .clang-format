@@ -1,0 +1,45 @@
+---
+BasedOnStyle: Google
+---
+Language: Cpp
+IndentWidth: 2
+ContinuationIndentWidth: 4
+
+
+
+DerivePointerAlignment: false
+PointerAlignment: Right
+
+
+
+BreakBeforeBraces: Linux
+AlwaysBreakAfterReturnType: AllDefinitions
+AlwaysBreakBeforeMultilineStrings: true
+
+
+
+AlignAfterOpenBracket: AlwaysBreak
+BinPackArguments: false
+AllowAllArgumentsOnNextLine: false
+BinPackParameters: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+
+
+
+BreakStringLiterals: true
+SpaceAfterCStyleCast: true
+SpacesInContainerLiterals: false
+PenaltyReturnTypeOnItsOwnLine: 999
+
+
+
+FixNamespaceComments: true
+NamespaceIndentation: All
+SortUsingDeclarations: true
+CompactNamespaces: false
+---

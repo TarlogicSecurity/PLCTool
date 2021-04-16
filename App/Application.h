@@ -30,18 +30,22 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include <QObject>
 #include <QApplication>
+#include <QMap>
+#include <QObject>
+
+#include "Attacks/AttackManager.h"
+#include "DLMSProcessor.h"
+#include "MeterInfo.h"
+#include "PRIME/PrimeAdapter.h"
+#include "PRIMEProcessor.h"
+#include "QVector"
 #include "Topology/Concentrator.h"
 #include "Topology/Meter.h"
 #include "Ui/QtUi.h"
-#include "PRIME/PrimeAdapter.h"
-#include "QVector"
-#include <QMap>
 
-#include "PRIMEProcessor.h"
-#include "DLMSProcessor.h"
-#include "MeterInfo.h"
+#define WINDOW_ICON_PATH ":/Icons/Tarlogic/Tarlogic-5.png"
+#define WINDOW_TITLE "Tarlogic PLCTool - A PRIME and DLMS graphical swiss-knife"
 
 class Application : public QApplication
 {
@@ -49,6 +53,7 @@ class Application : public QApplication
 
   // Data model objects
   PLCTool::PrimeAdapter *adapter = nullptr;
+  PLCTool::AttackManager *attackManager = nullptr;
   QVector<PLCTool::SubNet *> subNetHistory;
   QMap<PLCTool::NodeId, MeterInfo*> meterInfo;
 
@@ -71,6 +76,8 @@ class Application : public QApplication
   void connectAdapter(void);
   void connectUi(void);
   void connectProcessors(void);
+
+  void createAttackManager(PLCTool::PrimeAdapter *parent);
 
   void clearMeterInfo(void);
   MeterInfo *assertMeterInfo(PLCTool::Meter *);
@@ -130,6 +137,7 @@ public slots:
   void onOpenMeterInfo(PLCTool::Meter *meter);
   void onProcessedFrame(Frame);
   void onProcessedDlmsMessage(DlmsMessage);
+  void onNewUIAttackController(PLCTool::UIAttackController *controller);
 };
 
 #endif // APPLICATION_H

@@ -30,82 +30,98 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <Topology/Meter.h>
+
+#include <QDateTime>
+#include <QHash>
 #include <QMainWindow>
 #include <QMdiSubWindow>
-#include <Topology/Meter.h>
-#include "TopologyModel.h"
-#include <QHash>
 
-namespace Ui {
-class MainWindow;
+#include "TopologyModel.h"
+
+namespace Ui
+{
+  class MainWindow;
 }
 
-class QSaneMdiSubWindow : public QMdiSubWindow {
+class QSaneMdiSubWindow : public QMdiSubWindow
+{
   Q_OBJECT
 
   QString name;
 
-public:
+ public:
   QSaneMdiSubWindow(QString const &name);
 
-signals:
+  QString getName(void) const;
+
+ signals:
   void closed(QString);
 
-protected:
+ protected:
   void closeEvent(QCloseEvent *closeEvent);
 };
 
 class MainWindow : public QMainWindow
 {
-    Q_OBJECT
+  Q_OBJECT
 
-    TopologyModel *model = nullptr;
-    QHash<QString, QSaneMdiSubWindow *> windowMap;
+  TopologyModel *model = nullptr;
+  QHash<QString, QSaneMdiSubWindow *> windowMap;
 
-    void connectAll(void);
+  QIcon *icon = nullptr;
 
-public:
-    enum Button {
-      MAIN_WINDOW_BUTTON_FRAME_LOG,
-      MAIN_WINDOW_BUTTON_MESSAGE_LOG,
-      MAIN_WINDOW_BUTTON_CREDENTIALS_LOG,
-      MAIN_WINDOW_BUTTON_TRANSLATOR
-    };
+  void connectAll(void);
 
-    explicit MainWindow(QWidget *parent = 0);
+ public:
+  enum Button {
+    MAIN_WINDOW_BUTTON_FRAME_LOG,
+    MAIN_WINDOW_BUTTON_MESSAGE_LOG,
+    MAIN_WINDOW_BUTTON_CREDENTIALS_LOG,
+    MAIN_WINDOW_BUTTON_TRANSLATOR
+  };
 
-    void setSubNet(const PLCTool::SubNet *sn);
-    bool connectState(void) const;
-    void setConnectState(bool);
+  explicit MainWindow(QWidget *parent = 0);
+  explicit MainWindow(QString const &iconPath, QWidget *parent = 0);
 
-    void notifySubNetChanges(void);
-    void setButtonState(Button, bool);
-    QSaneMdiSubWindow *openWindow(
-        QString const &name,
-        QString const &title,
-        QWidget *widget);
-    bool closeWindow(QString const &name);
-    QSaneMdiSubWindow *findWindow(QString const &name) const;
+  void setSubNet(const PLCTool::SubNet *sn);
+  bool connectState(void) const;
+  void setConnectState(bool);
 
-    ~MainWindow();
+  void setIconPath(QString const &iconPath);
 
-public slots:
-    void onCloseSubWindow(QString subWindow);
-    void onNodeActivated(QModelIndex);
+  void notifySubNetChanges(void);
+  void setButtonState(Button, bool);
+  QSaneMdiSubWindow *openWindow(
+      QString const &name,
+      QString const &title,
+      QWidget *widget,
+      QIcon const *icon = nullptr);
+  bool closeWindow(QString const &name);
+  QSaneMdiSubWindow *findWindow(QString const &name) const;
+  QString makeWindowName(QString const &baseName);
 
-private:
-    Ui::MainWindow *ui;
+  ~MainWindow();
 
-signals:
-    void loadFile(void);
-    void toggleStart(void);
-    void openModemDialog(void);
-    void toggleFrameLog(bool);
-    void toggleMessageLog(bool);
-    void toogleCredentialsLog(bool);
-    void toggleTranslator(bool);
-    void closeSubWindow(QString);
-    void openMeterInfo(PLCTool::Meter *);
+ public slots:
+  void onCloseSubWindow(QString subWindow);
+  void onNodeActivated(QModelIndex);
+
+ private:
+  Ui::MainWindow *ui;
+
+ signals:
+  void loadFile(void);
+  void toggleStart(void);
+  void openModemDialog(void);
+  void toggleFrameLog(bool);
+  void toggleMessageLog(bool);
+  void toogleCredentialsLog(bool);
+  void toggleTranslator(bool);
+  void closeSubWindow(QString);
+  void openMeterInfo(PLCTool::Meter *);
+  void newRegistration(void);
+  void newAssociation(void);
 };
 
-#endif // MAINWINDOW_H
+#endif  // MAINWINDOW_H

@@ -33,6 +33,7 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <string>
 
 namespace PLCTool {
   struct StringParamEntry {
@@ -40,6 +41,7 @@ namespace PLCTool {
     std::string value;
 
     int asInt(void) const;
+    ulong asULong(void) const;
     float asFloat(void) const;
     std::string const &asString(void) const;
     bool asBool(void) const;

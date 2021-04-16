@@ -11,7 +11,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>PLCTool - A PRIME/DLMS graphical swiss-knife</string>
+   <string>Tarlogic PLCTool - A PRIME/DLMS graphical swiss-knife</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="../icons.qrc">
+    <normaloff>:/Icons/Tarlogic/Tarlogic-5.png</normaloff>:/Icons/Tarlogic/Tarlogic-5.png</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout_2">
@@ -59,9 +63,7 @@
         <item row="1" column="0">
          <widget class="QTreeView" name="topologyView">
           <property name="font">
-           <font>
-            <family>Cascadia Code PL</family>
-           </font>
+           <font/>
           </property>
           <property name="sizeAdjustPolicy">
            <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
@@ -84,7 +86,7 @@
      <x>0</x>
      <y>0</y>
      <width>1227</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <property name="defaultUp">
@@ -113,6 +115,8 @@
    <addaction name="actionMessage_logger"/>
    <addaction name="actionCredentials"/>
    <addaction name="actionDLMS_Translator"/>
+   <addaction name="separator"/>
+   <addaction name="actionBlink"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
   </widget>
@@ -163,6 +167,24 @@
    </property>
    <property name="text">
     <string>Load</string>
+   </property>
+  </action>
+  <action name="actionBlink">
+   <property name="icon">
+    <iconset resource="../icons.qrc">
+     <normaloff>:/Icons/associate.png</normaloff>:/Icons/associate.png</iconset>
+   </property>
+   <property name="text">
+    <string>Blink</string>
+   </property>
+  </action>
+  <action name="actionRegister">
+   <property name="icon">
+    <iconset resource="../icons.qrc">
+     <normaloff>:/Icons/register.png</normaloff>:/Icons/register.png</iconset>
+   </property>
+   <property name="text">
+    <string>Register</string>
    </property>
   </action>
   <action name="actionFrame_logger">

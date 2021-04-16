@@ -29,12 +29,16 @@
 
 #include "QtUi.h"
 
-#include "CredentialsUI.h"
-#include "FrameLogUI.h"
-#include "DLMSLogUI.h"
-#include "TranslatorUI.h"
-#include <QFileDialog>
+#include <Attacks/BlinkAttack/BlinkController.h>
+
 #include <QCoreApplication>
+#include <QFileDialog>
+
+#include "CredentialsUI.h"
+#include "DLMSLogUI.h"
+#include "DisclaimerDialog.h"
+#include "FrameLogUI.h"
+#include "TranslatorUI.h"
 
 QtUi::QtUi(QObject *parent) : QObject(parent)
 {
@@ -42,8 +46,9 @@ QtUi::QtUi(QObject *parent) : QObject(parent)
   DLMSLogUI::registerTypes();
 
   this->mainWindow = new MainWindow(nullptr);
-  this->modemDialog = new ModemDialog(nullptr);
-  this->loadingDialog = new LoadingStatusDialog(nullptr);
+  this->disclaimerDialog = new DisclaimerDialog(this->mainWindow);
+  this->modemDialog = new ModemDialog(this->mainWindow);
+  this->loadingDialog = new LoadingStatusDialog(this->mainWindow);
   this->loadingDialog->setWindowTitle("Loading frames from file");
   this->frameLogUi = new FrameLogUI;
   this->dlmsLogUi = new DLMSLogUI;
@@ -55,74 +60,75 @@ QtUi::QtUi(QObject *parent) : QObject(parent)
   this->connectAll();
 }
 
+QtUi::QtUi(QString windowTitle, QString iconPath, QObject *parent)
+    : QtUi(parent)
+{
+  this->mainWindow->setWindowTitle(windowTitle);
+  this->mainWindow->setIconPath(iconPath);
+}
+
 void
 QtUi::connectAll(void)
 {
   connect(
-        this->mainWindow,
-        SIGNAL(openModemDialog()),
-        this,
-        SLOT(onOpenConfig()));
+      this->mainWindow,
+      SIGNAL(openModemDialog()),
+      this,
+      SLOT(onOpenConfig()));
+
+  connect(this->mainWindow, SIGNAL(newAssociation()), this, SLOT(onNewBlink()));
+
+  connect(this->mainWindow, SIGNAL(toggleStart()), this, SLOT(onToggleStart()));
+
+  connect(this->mainWindow, SIGNAL(loadFile()), this, SLOT(onLoadFile()));
 
   connect(
-        this->mainWindow,
-        SIGNAL(toggleStart()),
-        this,
-        SLOT(onToggleStart()));
+      this->loadingDialog,
+      SIGNAL(rejected()),
+      this,
+      SLOT(onRejectLoading()));
 
   connect(
-        this->mainWindow,
-        SIGNAL(loadFile()),
-        this,
-        SLOT(onLoadFile()));
+      this->mainWindow,
+      SIGNAL(openMeterInfo(PLCTool::Meter *)),
+      this,
+      SIGNAL(openMeterInfo(PLCTool::Meter *)));
 
   connect(
-        this->loadingDialog,
-        SIGNAL(rejected()),
-        this,
-        SLOT(onRejectLoading()));
+      this->frameLogUi,
+      SIGNAL(frameSelected(Frame &)),
+      this,
+      SLOT(onSelectFrame(Frame &)));
 
   connect(
-        this->mainWindow,
-        SIGNAL(openMeterInfo(PLCTool::Meter*)),
-        this,
-        SIGNAL(openMeterInfo(PLCTool::Meter*)));
+      this->mainWindow,
+      SIGNAL(toggleFrameLog(bool)),
+      this,
+      SLOT(onToggleFrameLog(bool)));
 
   connect(
-        this->frameLogUi,
-        SIGNAL(frameSelected(Frame &)),
-        this,
-        SLOT(onSelectFrame(Frame &)));
+      this->mainWindow,
+      SIGNAL(toggleMessageLog(bool)),
+      this,
+      SLOT(onToggleMessageLog(bool)));
 
   connect(
-        this->mainWindow,
-        SIGNAL(toggleFrameLog(bool)),
-        this,
-        SLOT(onToggleFrameLog(bool)));
+      this->mainWindow,
+      SIGNAL(toogleCredentialsLog(bool)),
+      this,
+      SLOT(onToggleCredentialsLog(bool)));
 
   connect(
-        this->mainWindow,
-        SIGNAL(toggleMessageLog(bool)),
-        this,
-        SLOT(onToggleMessageLog(bool)));
+      this->mainWindow,
+      SIGNAL(toggleTranslator(bool)),
+      this,
+      SLOT(onToggleTranslator(bool)));
 
   connect(
-        this->mainWindow,
-        SIGNAL(toogleCredentialsLog(bool)),
-        this,
-        SLOT(onToggleCredentialsLog(bool)));
-
-  connect(
-        this->mainWindow,
-        SIGNAL(toggleTranslator(bool)),
-        this,
-        SLOT(onToggleTranslator(bool)));
-
-  connect(
-        this->mainWindow,
-        SIGNAL(closeSubWindow(QString)),
-        this,
-        SLOT(onCloseSubWindow(QString)));
+      this->mainWindow,
+      SIGNAL(closeSubWindow(QString)),
+      this,
+      SLOT(onCloseSubWindow(QString)));
 }
 
 void
@@ -136,15 +142,14 @@ QtUi::breathe(void)
 
     this->credentialsUi->refreshCredentials();
 
-    if (this->parsedFrameCounter == 0
-        && this->totalFrameCounter > 0) {
+    if (this->parsedFrameCounter == 0 && this->totalFrameCounter > 0) {
       this->loadingMessage("Counting frames");
       this->loadingDialog->setLimits(0, 0);
-    } else if (this->totalFrameCounter > 0){
+    } else if (this->totalFrameCounter > 0) {
       this->loadingMessage("Loading frames");
       this->loadingDialog->setLimits(
-            this->parsedFrameCounter,
-            this->totalFrameCounter);
+          this->parsedFrameCounter,
+          this->totalFrameCounter);
     }
     this->refreshTimer.restart();
   }
@@ -156,10 +161,15 @@ QtUi::show(void)
   this->mainWindow->show();
 }
 
+int
+QtUi::showDisclaimer(void)
+{
+  return this->disclaimerDialog->exec();
+}
+
 QtUi::~QtUi()
 {
   delete this->mainWindow;
-  delete this->modemDialog;
 }
 
 void
@@ -179,7 +189,7 @@ void
 QtUi::setCounters(unsigned int parsed, unsigned int total)
 {
   this->parsedFrameCounter = parsed;
-  this->totalFrameCounter  = total;
+  this->totalFrameCounter = total;
 }
 
 void
@@ -244,13 +254,13 @@ QtUi::openMeterInfoView(MeterInfo *info)
     QString title;
 
     if (info->meter()->name().size() > 0)
-      title = QString::fromStdString(
-            "Meter information: " + info->meter()->name());
+      title =
+          QString::fromStdString("Meter information: " + info->meter()->name());
     else
-      title = "Meter information: "
-          + QString().asprintf(
-            "%06llx",
-            static_cast<quint64>(info->meter()->id()));
+      title = "Meter information: " +
+              QString().sprintf(
+                  "%06llx",
+                  static_cast<quint64>(info->meter()->id()));
 
     (void) this->mainWindow->openWindow(windowName, title, ui);
     this->meterUiMap.insert(info->meter()->id(), ui);
@@ -271,8 +281,7 @@ QtUi::refreshViews(void)
   this->dlmsLogUi->refreshMessages();
   this->credentialsUi->refreshCredentials();
 
-  for (auto p : this->meterUiMap)
-    p->refreshViews();
+  for (auto p : this->meterUiMap) p->refreshViews();
 }
 
 void
@@ -301,6 +310,31 @@ QtUi::modemBaud(void) const
   return static_cast<unsigned int>(this->modemDialog->baud());
 }
 
+void
+QtUi::registerAttackController(PLCTool::AttackController *controller)
+{
+  connect(
+      controller,
+      SIGNAL(closeAttackController(QString)),
+      this,
+      SLOT(onCloseAttackController(QString)));
+
+  attackControllerMap[controller->getName()] = controller;
+}
+
+void
+QtUi::registerUIAttackController(PLCTool::UIAttackController *controller)
+{
+  QSaneMdiSubWindow *window = this->mainWindow->openWindow(
+      controller->getName(),
+      controller->getWindowTitle(),
+      controller->getUI());
+
+  connect(window, SIGNAL(closed(QString)), controller, SLOT(onClosedWindow()));
+
+  registerAttackController(controller);
+}
+
 ///////////////////////////////// Slots ////////////////////////////////////////
 void
 QtUi::onToggleStart(void)
@@ -313,10 +347,12 @@ QtUi::onToggleStart(void)
       result = this->modemDialog->exec();
       this->modemDialog->hide();
 
-      if (result != QDialog::Accepted)
+      if (result != QDialog::Accepted) {
         this->mainWindow->setConnectState(false);
-      else
+        return;
+      } else {
         this->firstConnection = false;
+      }
     }
 
     if (this->mainWindow->connectState())
@@ -335,20 +371,31 @@ QtUi::onOpenConfig(void)
 }
 
 void
+QtUi::onNewBlink(void)
+{
+  QString windowName = this->mainWindow->makeWindowName("BlinkAttack");
+  QString windowTitle = "Start blinking";
+
+  PLCTool::BlinkController *controller =
+      new PLCTool::BlinkController(this, windowName, windowTitle);
+
+  emit newUIAttackController(controller);
+}
+
+void
 QtUi::onSelectFrame(Frame &)
 {
   QSaneMdiSubWindow *dl = this->mainWindow->findWindow("DlmsLog");
   QSaneMdiSubWindow *fl = this->mainWindow->findWindow("FrameLog");
 
   if (dl != nullptr && fl != nullptr) {
-//    DLMSLogUI  *dlui = static_cast<DLMSLogUI  *>(dl->widget());
-//    FrameLogUI *flui = static_cast<FrameLogUI *>(fl->widget());
-
+    //  DLMSLogUI  *dlui = static_cast<DLMSLogUI  *>(dl->widget());
+    //  FrameLogUI *flui = static_cast<FrameLogUI *>(fl->widget());
   }
 }
 
 void
-QtUi::onSelectDlmsMessage(DlmsMessage &msg)
+QtUi::onSelectDlmsMessage(DlmsMessage msg)
 {
   QSaneMdiSubWindow *fl = this->mainWindow->findWindow("FrameLog");
 
@@ -379,8 +426,8 @@ void
 QtUi::openFrameLog(void)
 {
   this->mainWindow->setButtonState(
-        MainWindow::MAIN_WINDOW_BUTTON_FRAME_LOG,
-        true);
+      MainWindow::MAIN_WINDOW_BUTTON_FRAME_LOG,
+      true);
   this->onToggleFrameLog(true);
 }
 
@@ -391,9 +438,9 @@ QtUi::onToggleFrameLog(bool open)
 
   if (open) {
     (void) this->mainWindow->openWindow(
-          windowName,
-          "Frame logger",
-          this->frameLogUi);
+        windowName,
+        "Frame logger",
+        this->frameLogUi);
     this->frameLogUi->realize();
   } else {
     (void) this->mainWindow->closeWindow(windowName);
@@ -407,9 +454,9 @@ QtUi::onToggleMessageLog(bool open)
 
   if (open) {
     (void) this->mainWindow->openWindow(
-          windowName,
-          "DLMS Message logger",
-          this->dlmsLogUi);
+        windowName,
+        "DLMS Message logger",
+        this->dlmsLogUi);
     this->dlmsLogUi->realize();
   } else {
     (void) this->mainWindow->closeWindow(windowName);
@@ -423,9 +470,9 @@ QtUi::onToggleCredentialsLog(bool open)
 
   if (open) {
     (void) this->mainWindow->openWindow(
-          windowName,
-          "Credential logger",
-          this->credentialsUi);
+        windowName,
+        "Credential logger",
+        this->credentialsUi);
     this->credentialsUi->realize();
   } else {
     (void) this->mainWindow->closeWindow(windowName);
@@ -439,9 +486,9 @@ QtUi::onToggleTranslator(bool open)
 
   if (open)
     (void) this->mainWindow->openWindow(
-          windowName,
-          "DLMS Translator",
-          this->translatorUi);
+        windowName,
+        "DLMS Translator",
+        this->translatorUi);
   else
     (void) this->mainWindow->closeWindow(windowName);
 }
@@ -471,4 +518,10 @@ void
 QtUi::onRejectLoading(void)
 {
   emit closeAdapter();
+}
+
+void
+QtUi::onCloseAttackController(QString controllerName)
+{
+  this->attackControllerMap[controllerName] = nullptr;
 }
