@@ -192,21 +192,22 @@ void CGXDLMSTranslator::SetFrameCounter(unsigned long value)
 
 void CGXDLMSTranslator::GetCiphering(CGXDLMSSettings& settings, bool force)
 {
-    if (force || m_Security != DLMS_SECURITY_NONE)
-    {
-        CGXCipher* c = settings.GetCipher();
-        c->SetSecurity(m_Security);
-        c->SetSystemTitle(m_SystemTitle);
-        c->SetBlockCipherKey(m_BlockCipherKey);
-        c->SetAuthenticationKey(m_AuthenticationKey);
-        c->SetFrameCounter(m_FrameCounter);
-        c->SetDedicatedKey(m_DedicatedKey);
-        settings.SetSourceSystemTitle(m_ServerSystemTitle);
+  if (force || m_Security != DLMS_SECURITY_NONE) {
+    CGXCipher *c = settings.GetCipher();
+    if (c) {
+      c->SetSecurity(m_Security);
+      c->SetSystemTitle(m_SystemTitle);
+      c->SetBlockCipherKey(m_BlockCipherKey);
+      c->SetAuthenticationKey(m_AuthenticationKey);
+      c->SetFrameCounter(m_FrameCounter);
+      c->SetDedicatedKey(m_DedicatedKey);
+      settings.SetSourceSystemTitle(m_ServerSystemTitle);
+    } else {
+      settings.SetCipher(NULL);
     }
-    else
-    {
-        settings.SetCipher(NULL);
-    }
+  } else {
+    settings.SetCipher(NULL);
+  }
 }
 
 int CGXDLMSTranslator::PduToXml(CGXByteBuffer& value, bool omitDeclaration, bool, std::string& output)
