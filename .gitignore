@@ -17,9 +17,9 @@ object_script.*.Debug
 /.qmake.cache
 /.qmake.stash
 *.pro.user
-*.pro.user.*
+*.pro.user*
 *.qbs.user
-*.qbs.user.*
+*.qbs.user*
 *.moc
 moc_*.cpp
 moc_*.h
@@ -51,3 +51,9 @@ compile_commands.json
 # QtCreator local machine specific files for imported projects
 *creator.user*
 *_qmlcache.qrc
+
+# License templates
+license-template
+
+# Build directories
+build
