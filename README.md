@@ -9,10 +9,17 @@ This tool was presented in the talk **Hacking Smart Meters** of the RootedCON 20
 Leave it running during a full 24-hour cycle and click on the Credential Logger button. If the PRIME you are in is not particularly secure, you may be able to see a few low-level-security DLMS passwords in the credential logger.
 
 
+## Plugin support
+
+Plugin build and usage guide can be found here: [**PLCTool plugin support**](https://www.tarlogic.com/blog/plctool-plugin-support/)
+
+Sample plugins can be found here: [**PLCTool-Plugins**](https://github.com/TarlogicSecurity/PLCTool-Plugins)
+
+
 ## Build
 
 Build instructions and a usage guide here: [**PLCTool, the Swiss army knife of smart meters**](https://www.tarlogic.com/blog/plctool-swiss-army-knife-of-smart-meters/)
-Plugin build and usage guide here: [**PLCTool plugin support**](https://www.tarlogic.com/blog/plctool-plugin-support/)
+
 
 Note that in order to build PLCTool, you will need:
 
