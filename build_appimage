@@ -1,17 +1,33 @@
 #!/bin/bash
 
+# Cleanup
 rm -rf build_appimage_dir
-
 mkdir -p build_appimage_dir
 cd build_appimage_dir
-qmake .. PREFIX=/usr
-make -j$(nproc)
-make install INSTALL_ROOT=AppDir
 
+# Build PLCTool
+mkdir -p plctool
+cd plctool
+qmake ../.. PREFIX=/usr
+make -j$(nproc)
+make install INSTALL_ROOT=../AppDir
+cd ..
+
+# Build plugins
+if [ -d "../../PLCTool-Plugins" ]
+then
+	mkdir -p plctool-plugins
+	cd plctool-plugins
+	qmake INCLUDEPATH+="$(pwd)/../AppDir/usr/include/" ../../../PLCTool-Plugins/BlinkAttack/ PREFIX=/usr
+	make -j$(nproc)
+	make install INSTALL_ROOT=../AppDir
+	cd ..
+fi
+
+# Package
 wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
 wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
 chmod +x linuxdeploy-x86_64.AppImage
 chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
 
-./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt -d PLCTool.desktop --output appimage
-
+./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt -d AppDir/usr/share/applications/PLCTool.desktop --output appimage
