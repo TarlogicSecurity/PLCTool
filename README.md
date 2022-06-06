@@ -12,6 +12,7 @@ Leave it running during a full 24-hour cycle and click on the Credential Logger 
 ## Build
 
 Build instructions and a usage guide here: [**PLCTool, the Swiss army knife of smart meters**](https://www.tarlogic.com/blog/plctool-swiss-army-knife-of-smart-meters/)
+Plugin build and usage guide here: [**PLCTool plugin support**](https://www.tarlogic.com/blog/plctool-plugin-support/)
 
 Note that in order to build PLCTool, you will need:
 
