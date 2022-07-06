@@ -49,7 +49,7 @@ Application::Application(int &argc, char *argv[]) : QApplication(argc, argv)
 {
   QFont monospaceFont("Monospace");
   monospaceFont.setStyleHint(QFont::TypeWriter);
-  monospaceFont.setPointSize(10);
+  monospaceFont.setPointSize(12);
 
   this->setFont(monospaceFont);
 
