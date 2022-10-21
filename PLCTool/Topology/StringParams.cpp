@@ -85,6 +85,22 @@ StringParamEntry::asULong(void) const
   return ret;
 }
 
+unsigned long
+StringParamEntry::asHexULong(void) const
+{
+  unsigned long ret = 0;
+
+  try {
+    ret = std::stoul(this->value, nullptr, 16);
+  } catch (std::invalid_argument const &e) {
+    ret = 0;
+  } catch (std::out_of_range const &e) {
+    ret = 0;
+  }
+
+  return ret;
+}
+
 float
 StringParamEntry::asFloat(void) const
 {
@@ -105,6 +121,23 @@ std::string const &
 StringParamEntry::asString(void) const
 {
   return this->value;
+}
+
+const std::vector<uint8_t>
+StringParamEntry::asByteVector(void) const
+{
+  std::string hex_string(this->asString());
+  std::vector<uint8_t> byte_vector;
+
+  if (hex_string.size() % 2 == 1)
+    hex_string.insert(hex_string.begin(), '0');
+
+  for (int i = 0; i < hex_string.size() / 2; ++i) {
+    uint8_t value = (uint8_t) std::stoul(hex_string.substr(i * 2, 2), nullptr, 16);
+    byte_vector.push_back(value);
+  }
+
+  return byte_vector;
 }
 
 bool

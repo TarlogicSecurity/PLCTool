@@ -42,8 +42,10 @@ namespace PLCTool {
 
     int asInt(void) const;
     unsigned long asULong(void) const;
+    unsigned long asHexULong(void) const;
     float asFloat(void) const;
     std::string const &asString(void) const;
+    const std::vector<uint8_t> asByteVector(void) const;
     bool asBool(void) const;
 
     std::string const &operator = (std::string const &);
