@@ -36,6 +36,7 @@
 #define GXCIPHER_H
 
 #include "GXBytebuffer.h"
+#include <cstdint>
 
 class CGXCipher
 {

@@ -34,6 +34,7 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <cstdint>
 
 namespace PLCTool {
   struct StringParamEntry {
